@@ -93,32 +93,32 @@ deps:
 ## Run the application
 run:
 	@echo "Running $(BINARY_NAME)..."
-	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(CMD_DIR)'
+	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(CMD_DIR); else go run ./$(CMD_DIR); fi
 
 ## Run the scraper example
 run-scraper:
 	@echo "Running $(SCRAPER_BINARY)..."
-	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(SCRAPER_CMD_DIR)'
+	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(SCRAPER_CMD_DIR); else go run ./$(SCRAPER_CMD_DIR); fi
 
 ## Run the intimcity gold scraper
 run-gold-scraper:
 	@echo "Running $(GOLD_SCRAPER_BINARY)..."
-	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(GOLD_SCRAPER_CMD_DIR)'
+	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(GOLD_SCRAPER_CMD_DIR); else go run ./$(GOLD_SCRAPER_CMD_DIR); fi
 
 ## Run the intimcity gold callback scraper
 run-gold-callback-scraper:
 	@echo "Running $(GOLD_CALLBACK_BINARY)..."
-	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(GOLD_CALLBACK_CMD_DIR)'
+	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(GOLD_CALLBACK_CMD_DIR); else go run ./$(GOLD_CALLBACK_CMD_DIR); fi
 
 ## Run the ClickHouse adapter example
 run-clickhouse-example:
 	@echo "Running $(CLICKHOUSE_BINARY)..."
-	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(CLICKHOUSE_CMD_DIR)'
+	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(CLICKHOUSE_CMD_DIR); else go run ./$(CLICKHOUSE_CMD_DIR); fi
 
 ## Run with hot reload (requires air)
 dev:
 	@echo "Running with hot reload..."
-	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; air -c .air.toml'
+	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) air -c .air.toml; else air -c .air.toml; fi
 
 ## Docker build
 docker-build:
