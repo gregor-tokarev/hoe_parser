@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gregor-tokarev/hoe_parser/internal/service"
 )
 
 // HomePageScraper handles scraping of intimcity.gold listings
@@ -66,7 +67,7 @@ func (s *HomePageScraper) ScrapeAllListingLinks() ([]ListingLink, error) {
 
 // getTotalPages extracts the total number of pages from the main page
 func (s *HomePageScraper) getTotalPages() (int, error) {
-	doc, err := FetchAndParsePage(s.baseURL)
+	doc, err := service.FetchAndParsePage(s.baseURL)
 	if err != nil {
 		return 0, err
 	}
@@ -128,11 +129,11 @@ func (s *HomePageScraper) scrapePageLinks(pageNum int) ([]ListingLink, error) {
 		pageURL = fmt.Sprintf("%s/?page=%d", s.baseURL, pageNum)
 	}
 
-	doc, err := FetchAndParsePage(pageURL)
+	doc, err := service.FetchAndParsePage(pageURL)
 	if err != nil {
 		// Try alternative pagination format
 		pageURL = fmt.Sprintf("%s/p%d", s.baseURL, pageNum)
-		doc, err = FetchAndParsePage(pageURL)
+		doc, err = service.FetchAndParsePage(pageURL)
 		if err != nil {
 			return nil, err
 		}

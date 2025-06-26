@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gregor-tokarev/hoe_parser/internal/service"
 	listing "github.com/gregor-tokarev/hoe_parser/proto"
 )
 
@@ -24,7 +25,7 @@ func NewListingScraper(url string) *ListingScraper {
 
 // ScrapeListing scrapes a single listing from intimcity and returns protobuf model
 func (s *ListingScraper) ScrapeListing() (*listing.Listing, error) {
-	doc, err := FetchAndParsePage(s.Url)
+	doc, err := service.FetchAndParsePage(s.Url)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)
@@ -393,7 +394,7 @@ func (s *ListingScraper) extractLastUpdated(doc *goquery.Document) string {
 func (s *ListingScraper) extractPhotos(doc *goquery.Document) []string {
 	var photos []string
 
-	imageData, err := FetchJsonImgs(s.Url)
+	imageData, err := service.FetchJsonImgs(s.Url)
 	if err != nil {
 		return photos
 	}
