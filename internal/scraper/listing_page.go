@@ -248,67 +248,12 @@ func (s *ListingScraper) extractServiceInfo(doc *goquery.Document) *listing.Serv
 
 	// Use table.uslugi_block class for services table
 	servicesTable := doc.Find("table.uslugi_block")
-	if servicesTable.Length() == 0 {
-		// Fallback to any table containing services info
-		doc.Find("table").Each(func(i int, table *goquery.Selection) {
-			if strings.Contains(table.Text(), "Секс") || strings.Contains(table.Text(), "Массаж") {
-				servicesTable = table
-				return
-			}
-		})
-	}
-
-	if servicesTable.Length() > 0 {
-		// Extract services from checkboxes
-		servicesTable.Find("input[type='checkbox']").Each(func(j int, checkbox *goquery.Selection) {
-			// Find the service link next to checkbox
-			serviceLink := checkbox.NextFiltered("a")
-			if serviceLink.Length() == 0 {
-				serviceLink = checkbox.NextAllFiltered("a").First()
-			}
-
-			var serviceName string
-			if serviceLink.Length() > 0 {
-				serviceName = strings.TrimSpace(serviceLink.Text())
-			} else {
-				// Extract from parent text
-				parent := checkbox.Parent()
-				serviceName = strings.TrimSpace(parent.Text())
-				serviceName = strings.TrimPrefix(serviceName, "✓")
-				serviceName = strings.TrimPrefix(serviceName, "☑")
-				serviceName = strings.TrimSpace(serviceName)
-			}
-
-			if serviceName != "" && len(serviceName) > 2 && len(serviceName) < 100 {
-				serviceName = cleanString(serviceName)
-
-				// Check if checkbox is checked
-				if _, checked := checkbox.Attr("checked"); checked {
-					info.AvailableServices = append(info.AvailableServices, serviceName)
-				} else {
-					info.Restrictions = append(info.Restrictions, serviceName)
-				}
-			}
-		})
-
-		// Extract from service links with href patterns
-		servicesTable.Find("a[href*='style'], a[href*='type']").Each(func(j int, link *goquery.Selection) {
-			serviceName := strings.TrimSpace(link.Text())
-			if serviceName != "" && len(serviceName) > 2 && len(serviceName) < 100 {
-				serviceName = cleanString(serviceName)
-
-				if strings.Contains(serviceName, "+") {
-					parts := strings.Split(serviceName, "+")
-					if len(parts) > 0 {
-						serviceName = strings.TrimSpace(parts[0])
-						info.AdditionalServices = append(info.AdditionalServices, serviceName)
-					}
-				} else {
-					info.AvailableServices = append(info.AvailableServices, serviceName)
-				}
-			}
-		})
-	}
+	servicesTable.Find("a[href]").Each(func(i int, link *goquery.Selection) {
+		service := strings.TrimSpace(link.Text())
+		if service != "" && !link.HasClass("noservice") {
+			info.AvailableServices = append(info.AvailableServices, service)
+		}
+	})
 
 	// Determine meeting type
 	pageText := strings.ToLower(doc.Text())
