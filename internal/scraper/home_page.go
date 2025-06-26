@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -293,6 +294,8 @@ func (s *HomePageScraper) StartContinuousMonitoring(linkChan chan<- string) erro
 			for _, link := range links {
 				linkChan <- link.URL
 			}
+
+			time.Sleep(time.Duration(3+rand.Intn(5)) * time.Second)
 		}
 	}
 }
