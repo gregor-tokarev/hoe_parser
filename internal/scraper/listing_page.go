@@ -12,18 +12,18 @@ import (
 	listing "github.com/gregor-tokarev/hoe_parser/proto"
 )
 
-// IntimcityScraper handles scraping of intimcity listings
-type IntimcityScraper struct {
+// ListingScraper handles scraping of intimcity listings
+type ListingScraper struct {
 	Url string
 }
 
-// NewIntimcityScraper creates a new intimcity scraper
-func NewIntimcityScraper(url string) *IntimcityScraper {
-	return &IntimcityScraper{Url: url}
+// NewListingScraper creates a new intimcity scraper
+func NewListingScraper(url string) *ListingScraper {
+	return &ListingScraper{Url: url}
 }
 
 // ScrapeListing scrapes a single listing from intimcity and returns protobuf model
-func (s *IntimcityScraper) ScrapeListing() (*listing.Listing, error) {
+func (s *ListingScraper) ScrapeListing() (*listing.Listing, error) {
 	doc, err := FetchAndParsePage(s.Url)
 
 	if err != nil {
@@ -66,7 +66,7 @@ func cleanString(s string) string {
 }
 
 // extractListingID extracts the listing ID from URL
-func (s *IntimcityScraper) extractListingID() string {
+func (s *ListingScraper) extractListingID() string {
 	re := regexp.MustCompile(`anketa(\d+)\.htm`)
 	matches := re.FindStringSubmatch(s.Url)
 	if len(matches) > 1 {
@@ -76,7 +76,7 @@ func (s *IntimcityScraper) extractListingID() string {
 }
 
 // extractPersonalInfo extracts personal information from the page
-func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.PersonalInfo {
+func (s *ListingScraper) extractPersonalInfo(doc *goquery.Document) *listing.PersonalInfo {
 	info := &listing.PersonalInfo{}
 
 	// Extract name from page title
@@ -121,7 +121,7 @@ func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.P
 }
 
 // extractContactInfo extracts contact information
-func (s *IntimcityScraper) extractContactInfo(doc *goquery.Document) *listing.ContactInfo {
+func (s *ListingScraper) extractContactInfo(doc *goquery.Document) *listing.ContactInfo {
 	info := &listing.ContactInfo{}
 
 	// Extract phone using specific ID first
@@ -178,7 +178,7 @@ func (s *IntimcityScraper) extractContactInfo(doc *goquery.Document) *listing.Co
 }
 
 // extractPricingInfo extracts pricing information
-func (s *IntimcityScraper) extractPricingInfo(doc *goquery.Document) *listing.PricingInfo {
+func (s *ListingScraper) extractPricingInfo(doc *goquery.Document) *listing.PricingInfo {
 	info := &listing.PricingInfo{
 		DurationPrices: make(map[string]int32),
 		ServicePrices:  make(map[string]int32),
@@ -239,7 +239,7 @@ func extractPrice(text string) int32 {
 }
 
 // extractServiceInfo extracts available services
-func (s *IntimcityScraper) extractServiceInfo(doc *goquery.Document) *listing.ServiceInfo {
+func (s *ListingScraper) extractServiceInfo(doc *goquery.Document) *listing.ServiceInfo {
 	info := &listing.ServiceInfo{
 		AvailableServices:  []string{},
 		AdditionalServices: []string{},
@@ -327,7 +327,7 @@ func (s *IntimcityScraper) extractServiceInfo(doc *goquery.Document) *listing.Se
 }
 
 // extractLocationInfo extracts location information
-func (s *IntimcityScraper) extractLocationInfo(doc *goquery.Document) *listing.LocationInfo {
+func (s *ListingScraper) extractLocationInfo(doc *goquery.Document) *listing.LocationInfo {
 	info := &listing.LocationInfo{
 		MetroStations: []string{},
 		City:          "Moscow", // Default for intimcity
@@ -391,7 +391,7 @@ func (s *IntimcityScraper) extractLocationInfo(doc *goquery.Document) *listing.L
 }
 
 // extractDescription extracts the main description
-func (s *IntimcityScraper) extractDescription(doc *goquery.Document) string {
+func (s *ListingScraper) extractDescription(doc *goquery.Document) string {
 	// Use p.pnletter class for description
 	if desc := doc.Find("p.pnletter").First(); desc.Length() > 0 {
 		return cleanString(desc.Text())
@@ -421,7 +421,7 @@ func (s *IntimcityScraper) extractDescription(doc *goquery.Document) string {
 }
 
 // extractLastUpdated extracts the last updated date
-func (s *IntimcityScraper) extractLastUpdated(doc *goquery.Document) string {
+func (s *ListingScraper) extractLastUpdated(doc *goquery.Document) string {
 	// Look for update date in table with noprint class
 	updateText := doc.Find("tr.noprint td").Last().Text()
 	if updateText != "" {
@@ -445,7 +445,7 @@ func (s *IntimcityScraper) extractLastUpdated(doc *goquery.Document) string {
 }
 
 // extractPhotos extracts photo URLs
-func (s *IntimcityScraper) extractPhotos(doc *goquery.Document) []string {
+func (s *ListingScraper) extractPhotos(doc *goquery.Document) []string {
 	var photos []string
 
 	imageData, err := FetchJsonImgs(s.Url)

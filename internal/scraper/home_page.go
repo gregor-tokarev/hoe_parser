@@ -11,8 +11,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// IntimcityGoldScraper handles scraping of intimcity.gold listings
-type IntimcityGoldScraper struct {
+// HomePageScraper handles scraping of intimcity.gold listings
+type HomePageScraper struct {
 	client  *http.Client
 	baseURL string
 }
@@ -24,9 +24,9 @@ type ListingLink struct {
 	ID    string
 }
 
-// NewIntimcityGoldScraper creates a new intimcity gold scraper
-func NewIntimcityGoldScraper() *IntimcityGoldScraper {
-	return &IntimcityGoldScraper{
+// NewHomePageScraper creates a new intimcity home page scraper
+func NewHomePageScraper() *HomePageScraper {
+	return &HomePageScraper{
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -35,7 +35,7 @@ func NewIntimcityGoldScraper() *IntimcityGoldScraper {
 }
 
 // ScrapeAllListingLinks scrapes all pages and returns all listing links
-func (s *IntimcityGoldScraper) ScrapeAllListingLinks() ([]ListingLink, error) {
+func (s *HomePageScraper) ScrapeAllListingLinks() ([]ListingLink, error) {
 	var allLinks []ListingLink
 
 	// First, get the total number of pages
@@ -64,7 +64,7 @@ func (s *IntimcityGoldScraper) ScrapeAllListingLinks() ([]ListingLink, error) {
 }
 
 // getTotalPages extracts the total number of pages from the main page
-func (s *IntimcityGoldScraper) getTotalPages() (int, error) {
+func (s *HomePageScraper) getTotalPages() (int, error) {
 	doc, err := FetchAndParsePage(s.baseURL)
 	if err != nil {
 		return 0, err
@@ -118,7 +118,7 @@ func (s *IntimcityGoldScraper) getTotalPages() (int, error) {
 }
 
 // scrapePageLinks extracts listing links from a specific page
-func (s *IntimcityGoldScraper) scrapePageLinks(pageNum int) ([]ListingLink, error) {
+func (s *HomePageScraper) scrapePageLinks(pageNum int) ([]ListingLink, error) {
 	var pageURL string
 	if pageNum == 1 {
 		pageURL = s.baseURL
@@ -187,7 +187,7 @@ func (s *IntimcityGoldScraper) scrapePageLinks(pageNum int) ([]ListingLink, erro
 }
 
 // isListingLink determines if a URL is likely a listing page
-func (s *IntimcityGoldScraper) isListingLink(url string) bool {
+func (s *HomePageScraper) isListingLink(url string) bool {
 	// Common patterns for listing pages
 	listingPatterns := []string{
 		`anketa\d+`,  // anketa123.htm
@@ -223,7 +223,7 @@ func (s *IntimcityGoldScraper) isListingLink(url string) bool {
 }
 
 // extractIDFromURL extracts an ID from the listing URL
-func (s *IntimcityGoldScraper) extractIDFromURL(url string) string {
+func (s *HomePageScraper) extractIDFromURL(url string) string {
 	// Try various ID extraction patterns
 	patterns := []string{
 		`anketa(\d+)`,
@@ -247,7 +247,7 @@ func (s *IntimcityGoldScraper) extractIDFromURL(url string) string {
 }
 
 // removeDuplicateLinks removes duplicate links based on URL
-func (s *IntimcityGoldScraper) removeDuplicateLinks(links []ListingLink) []ListingLink {
+func (s *HomePageScraper) removeDuplicateLinks(links []ListingLink) []ListingLink {
 	seen := make(map[string]bool)
 	var result []ListingLink
 
@@ -263,7 +263,7 @@ func (s *IntimcityGoldScraper) removeDuplicateLinks(links []ListingLink) []Listi
 
 // StartContinuousMonitoring starts continuous monitoring of all pages, sending new links to the channel
 // It loops through all pages, and when it reaches the last page, it starts over from the first page
-func (s *IntimcityGoldScraper) StartContinuousMonitoring(linkChan chan<- string) error {
+func (s *HomePageScraper) StartContinuousMonitoring(linkChan chan<- string) error {
 	// Get total pages once at the start
 	totalPages, err := s.getTotalPages()
 	if err != nil {
@@ -298,7 +298,7 @@ func (s *IntimcityGoldScraper) StartContinuousMonitoring(linkChan chan<- string)
 }
 
 // StartContinuousMonitoringWithCallback starts continuous monitoring with a callback function for each new link
-func (s *IntimcityGoldScraper) StartContinuousMonitoringWithCallback(callback func(string)) error {
+func (s *HomePageScraper) StartContinuousMonitoringWithCallback(callback func(string)) error {
 	linkChan := make(chan string, 10000) // Buffered channel
 
 	// Start a goroutine to handle incoming links
@@ -313,7 +313,7 @@ func (s *IntimcityGoldScraper) StartContinuousMonitoringWithCallback(callback fu
 }
 
 // GetListingLinks is a convenience method that returns just the URLs
-func (s *IntimcityGoldScraper) GetListingLinks() ([]string, error) {
+func (s *HomePageScraper) GetListingLinks() ([]string, error) {
 	links, err := s.ScrapeAllListingLinks()
 	if err != nil {
 		return nil, err
