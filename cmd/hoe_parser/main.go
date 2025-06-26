@@ -47,7 +47,7 @@ func main() {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Channel to receive new listing URLs
-	linkChan := make(chan string, 100)
+	linkChan := make(chan string, 20)
 
 	// Context for the entire application (no timeout)
 	ctx, cancel := context.WithCancel(context.Background())
