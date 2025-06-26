@@ -100,6 +100,12 @@ type FlattenedListing struct {
 
 // NewAdapter creates a new ClickHouse adapter
 func NewAdapter(config Config) (*Adapter, error) {
+	// Set default MaxConnections if not specified
+	maxConns := config.MaxConnections
+	if maxConns <= 0 {
+		maxConns = 10
+	}
+
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{fmt.Sprintf("%s:%d", config.Host, config.Port)},
 		Auth: clickhouse.Auth{
@@ -113,6 +119,14 @@ func NewAdapter(config Config) (*Adapter, error) {
 				fmt.Printf("[ClickHouse Debug] "+format+"\n", v...)
 			}
 		},
+		Settings: clickhouse.Settings{
+			"max_execution_time": 60,
+		},
+		DialTimeout:      30 * time.Second,
+		MaxOpenConns:     maxConns,
+		MaxIdleConns:     maxConns / 2,
+		ConnMaxLifetime:  time.Hour,
+		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to ClickHouse: %w", err)
