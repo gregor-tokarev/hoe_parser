@@ -4,7 +4,7 @@
 // 	protoc        v5.29.3
 // source: proto/listing.proto
 
-package proto
+package listing
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -141,7 +141,6 @@ type PersonalInfo struct {
 	HairColor     string                 `protobuf:"bytes,6,opt,name=hair_color,json=hairColor,proto3" json:"hair_color,omitempty"`
 	EyeColor      string                 `protobuf:"bytes,7,opt,name=eye_color,json=eyeColor,proto3" json:"eye_color,omitempty"`
 	BodyType      string                 `protobuf:"bytes,8,opt,name=body_type,json=bodyType,proto3" json:"body_type,omitempty"`
-	Photos        []string               `protobuf:"bytes,9,rep,name=photos,proto3" json:"photos,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -232,23 +231,16 @@ func (x *PersonalInfo) GetBodyType() string {
 	return ""
 }
 
-func (x *PersonalInfo) GetPhotos() []string {
-	if x != nil {
-		return x.Photos
-	}
-	return nil
-}
-
 // Contact information
 type ContactInfo struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Phone            string                 `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
-	HasTelegram      bool                   `protobuf:"varint,2,opt,name=has_telegram,json=hasTelegram,proto3" json:"has_telegram,omitempty"`
-	HasWhatsapp      bool                   `protobuf:"varint,3,opt,name=has_whatsapp,json=hasWhatsapp,proto3" json:"has_whatsapp,omitempty"`
-	HasViber         bool                   `protobuf:"varint,4,opt,name=has_viber,json=hasViber,proto3" json:"has_viber,omitempty"`
-	TelegramUsername string                 `protobuf:"bytes,5,opt,name=telegram_username,json=telegramUsername,proto3" json:"telegram_username,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Phone             string                 `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
+	Telegram          string                 `protobuf:"bytes,2,opt,name=telegram,proto3" json:"telegram,omitempty"`
+	Email             string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	WhatsappAvailable bool                   `protobuf:"varint,4,opt,name=whatsapp_available,json=whatsappAvailable,proto3" json:"whatsapp_available,omitempty"`
+	ViberAvailable    bool                   `protobuf:"varint,5,opt,name=viber_available,json=viberAvailable,proto3" json:"viber_available,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ContactInfo) Reset() {
@@ -288,43 +280,42 @@ func (x *ContactInfo) GetPhone() string {
 	return ""
 }
 
-func (x *ContactInfo) GetHasTelegram() bool {
+func (x *ContactInfo) GetTelegram() string {
 	if x != nil {
-		return x.HasTelegram
-	}
-	return false
-}
-
-func (x *ContactInfo) GetHasWhatsapp() bool {
-	if x != nil {
-		return x.HasWhatsapp
-	}
-	return false
-}
-
-func (x *ContactInfo) GetHasViber() bool {
-	if x != nil {
-		return x.HasViber
-	}
-	return false
-}
-
-func (x *ContactInfo) GetTelegramUsername() string {
-	if x != nil {
-		return x.TelegramUsername
+		return x.Telegram
 	}
 	return ""
 }
 
+func (x *ContactInfo) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *ContactInfo) GetWhatsappAvailable() bool {
+	if x != nil {
+		return x.WhatsappAvailable
+	}
+	return false
+}
+
+func (x *ContactInfo) GetViberAvailable() bool {
+	if x != nil {
+		return x.ViberAvailable
+	}
+	return false
+}
+
 // Pricing information
 type PricingInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HourPrice     int32                  `protobuf:"varint,1,opt,name=hour_price,json=hourPrice,proto3" json:"hour_price,omitempty"`
-	TwoHourPrice  int32                  `protobuf:"varint,2,opt,name=two_hour_price,json=twoHourPrice,proto3" json:"two_hour_price,omitempty"`
-	NightPrice    int32                  `protobuf:"varint,3,opt,name=night_price,json=nightPrice,proto3" json:"night_price,omitempty"`
-	Currency      string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	DurationPrices map[string]int32       `protobuf:"bytes,1,rep,name=duration_prices,json=durationPrices,proto3" json:"duration_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // duration -> price
+	ServicePrices  map[string]int32       `protobuf:"bytes,2,rep,name=service_prices,json=servicePrices,proto3" json:"service_prices,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`    // service -> additional price
+	Currency       string                 `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PricingInfo) Reset() {
@@ -357,25 +348,18 @@ func (*PricingInfo) Descriptor() ([]byte, []int) {
 	return file_proto_listing_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *PricingInfo) GetHourPrice() int32 {
+func (x *PricingInfo) GetDurationPrices() map[string]int32 {
 	if x != nil {
-		return x.HourPrice
+		return x.DurationPrices
 	}
-	return 0
+	return nil
 }
 
-func (x *PricingInfo) GetTwoHourPrice() int32 {
+func (x *PricingInfo) GetServicePrices() map[string]int32 {
 	if x != nil {
-		return x.TwoHourPrice
+		return x.ServicePrices
 	}
-	return 0
-}
-
-func (x *PricingInfo) GetNightPrice() int32 {
-	if x != nil {
-		return x.NightPrice
-	}
-	return 0
+	return nil
 }
 
 func (x *PricingInfo) GetCurrency() string {
@@ -387,11 +371,13 @@ func (x *PricingInfo) GetCurrency() string {
 
 // Service information
 type ServiceInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Services      []string               `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	AvailableServices  []string               `protobuf:"bytes,1,rep,name=available_services,json=availableServices,proto3" json:"available_services,omitempty"`
+	AdditionalServices []string               `protobuf:"bytes,2,rep,name=additional_services,json=additionalServices,proto3" json:"additional_services,omitempty"`
+	Restrictions       []string               `protobuf:"bytes,3,rep,name=restrictions,proto3" json:"restrictions,omitempty"`
+	MeetingType        string                 `protobuf:"bytes,4,opt,name=meeting_type,json=meetingType,proto3" json:"meeting_type,omitempty"` // apartment, hotel, etc.
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ServiceInfo) Reset() {
@@ -424,16 +410,30 @@ func (*ServiceInfo) Descriptor() ([]byte, []int) {
 	return file_proto_listing_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ServiceInfo) GetServices() []string {
+func (x *ServiceInfo) GetAvailableServices() []string {
 	if x != nil {
-		return x.Services
+		return x.AvailableServices
 	}
 	return nil
 }
 
-func (x *ServiceInfo) GetDescription() string {
+func (x *ServiceInfo) GetAdditionalServices() []string {
 	if x != nil {
-		return x.Description
+		return x.AdditionalServices
+	}
+	return nil
+}
+
+func (x *ServiceInfo) GetRestrictions() []string {
+	if x != nil {
+		return x.Restrictions
+	}
+	return nil
+}
+
+func (x *ServiceInfo) GetMeetingType() string {
+	if x != nil {
+		return x.MeetingType
 	}
 	return ""
 }
@@ -515,200 +515,6 @@ func (x *LocationInfo) GetIncallAvailable() bool {
 	return false
 }
 
-// PageInfo represents pagination information for main page scraping
-type PageInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CurrentPage   int32                  `protobuf:"varint,1,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
-	TotalPages    int32                  `protobuf:"varint,2,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	HasNext       bool                   `protobuf:"varint,3,opt,name=has_next,json=hasNext,proto3" json:"has_next,omitempty"`
-	HasPrevious   bool                   `protobuf:"varint,4,opt,name=has_previous,json=hasPrevious,proto3" json:"has_previous,omitempty"`
-	ListingUrls   []string               `protobuf:"bytes,5,rep,name=listing_urls,json=listingUrls,proto3" json:"listing_urls,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PageInfo) Reset() {
-	*x = PageInfo{}
-	mi := &file_proto_listing_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PageInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PageInfo) ProtoMessage() {}
-
-func (x *PageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_listing_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PageInfo.ProtoReflect.Descriptor instead.
-func (*PageInfo) Descriptor() ([]byte, []int) {
-	return file_proto_listing_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PageInfo) GetCurrentPage() int32 {
-	if x != nil {
-		return x.CurrentPage
-	}
-	return 0
-}
-
-func (x *PageInfo) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
-func (x *PageInfo) GetHasNext() bool {
-	if x != nil {
-		return x.HasNext
-	}
-	return false
-}
-
-func (x *PageInfo) GetHasPrevious() bool {
-	if x != nil {
-		return x.HasPrevious
-	}
-	return false
-}
-
-func (x *PageInfo) GetListingUrls() []string {
-	if x != nil {
-		return x.ListingUrls
-	}
-	return nil
-}
-
-// BatchResult represents the result of batch processing multiple listings
-type BatchResult struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	TotalPages        int32                  `protobuf:"varint,1,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	CurrentPage       int32                  `protobuf:"varint,2,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
-	TotalListings     int32                  `protobuf:"varint,3,opt,name=total_listings,json=totalListings,proto3" json:"total_listings,omitempty"`
-	SuccessfulScrapes int32                  `protobuf:"varint,4,opt,name=successful_scrapes,json=successfulScrapes,proto3" json:"successful_scrapes,omitempty"`
-	FailedScrapes     int32                  `protobuf:"varint,5,opt,name=failed_scrapes,json=failedScrapes,proto3" json:"failed_scrapes,omitempty"`
-	Listings          []*Listing             `protobuf:"bytes,6,rep,name=listings,proto3" json:"listings,omitempty"`
-	Errors            []string               `protobuf:"bytes,7,rep,name=errors,proto3" json:"errors,omitempty"`
-	StartedAt         string                 `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	CompletedAt       string                 `protobuf:"bytes,9,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	DurationMs        int64                  `protobuf:"varint,10,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *BatchResult) Reset() {
-	*x = BatchResult{}
-	mi := &file_proto_listing_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BatchResult) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BatchResult) ProtoMessage() {}
-
-func (x *BatchResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_listing_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BatchResult.ProtoReflect.Descriptor instead.
-func (*BatchResult) Descriptor() ([]byte, []int) {
-	return file_proto_listing_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *BatchResult) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
-func (x *BatchResult) GetCurrentPage() int32 {
-	if x != nil {
-		return x.CurrentPage
-	}
-	return 0
-}
-
-func (x *BatchResult) GetTotalListings() int32 {
-	if x != nil {
-		return x.TotalListings
-	}
-	return 0
-}
-
-func (x *BatchResult) GetSuccessfulScrapes() int32 {
-	if x != nil {
-		return x.SuccessfulScrapes
-	}
-	return 0
-}
-
-func (x *BatchResult) GetFailedScrapes() int32 {
-	if x != nil {
-		return x.FailedScrapes
-	}
-	return 0
-}
-
-func (x *BatchResult) GetListings() []*Listing {
-	if x != nil {
-		return x.Listings
-	}
-	return nil
-}
-
-func (x *BatchResult) GetErrors() []string {
-	if x != nil {
-		return x.Errors
-	}
-	return nil
-}
-
-func (x *BatchResult) GetStartedAt() string {
-	if x != nil {
-		return x.StartedAt
-	}
-	return ""
-}
-
-func (x *BatchResult) GetCompletedAt() string {
-	if x != nil {
-		return x.CompletedAt
-	}
-	return ""
-}
-
-func (x *BatchResult) GetDurationMs() int64 {
-	if x != nil {
-		return x.DurationMs
-	}
-	return 0
-}
-
 var File_proto_listing_proto protoreflect.FileDescriptor
 
 const file_proto_listing_proto_rawDesc = "" +
@@ -723,7 +529,7 @@ const file_proto_listing_proto_rawDesc = "" +
 	"\rlocation_info\x18\x06 \x01(\v2\x15.listing.LocationInfoR\flocationInfo\x12 \n" +
 	"\vdescription\x18\a \x01(\tR\vdescription\x12!\n" +
 	"\flast_updated\x18\b \x01(\tR\vlastUpdated\x12\x16\n" +
-	"\x06photos\x18\t \x03(\tR\x06photos\"\xf6\x01\n" +
+	"\x06photos\x18\t \x03(\tR\x06photos\"\xde\x01\n" +
 	"\fPersonalInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
 	"\x03age\x18\x02 \x01(\x05R\x03age\x12\x16\n" +
@@ -734,52 +540,34 @@ const file_proto_listing_proto_rawDesc = "" +
 	"\n" +
 	"hair_color\x18\x06 \x01(\tR\thairColor\x12\x1b\n" +
 	"\teye_color\x18\a \x01(\tR\beyeColor\x12\x1b\n" +
-	"\tbody_type\x18\b \x01(\tR\bbodyType\x12\x16\n" +
-	"\x06photos\x18\t \x03(\tR\x06photos\"\xb3\x01\n" +
+	"\tbody_type\x18\b \x01(\tR\bbodyType\"\xad\x01\n" +
 	"\vContactInfo\x12\x14\n" +
-	"\x05phone\x18\x01 \x01(\tR\x05phone\x12!\n" +
-	"\fhas_telegram\x18\x02 \x01(\bR\vhasTelegram\x12!\n" +
-	"\fhas_whatsapp\x18\x03 \x01(\bR\vhasWhatsapp\x12\x1b\n" +
-	"\thas_viber\x18\x04 \x01(\bR\bhasViber\x12+\n" +
-	"\x11telegram_username\x18\x05 \x01(\tR\x10telegramUsername\"\x8f\x01\n" +
-	"\vPricingInfo\x12\x1d\n" +
-	"\n" +
-	"hour_price\x18\x01 \x01(\x05R\thourPrice\x12$\n" +
-	"\x0etwo_hour_price\x18\x02 \x01(\x05R\ftwoHourPrice\x12\x1f\n" +
-	"\vnight_price\x18\x03 \x01(\x05R\n" +
-	"nightPrice\x12\x1a\n" +
-	"\bcurrency\x18\x04 \x01(\tR\bcurrency\"K\n" +
-	"\vServiceInfo\x12\x1a\n" +
-	"\bservices\x18\x01 \x03(\tR\bservices\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\"\xbd\x01\n" +
+	"\x05phone\x18\x01 \x01(\tR\x05phone\x12\x1a\n" +
+	"\btelegram\x18\x02 \x01(\tR\btelegram\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12-\n" +
+	"\x12whatsapp_available\x18\x04 \x01(\bR\x11whatsappAvailable\x12'\n" +
+	"\x0fviber_available\x18\x05 \x01(\bR\x0eviberAvailable\"\xd1\x02\n" +
+	"\vPricingInfo\x12Q\n" +
+	"\x0fduration_prices\x18\x01 \x03(\v2(.listing.PricingInfo.DurationPricesEntryR\x0edurationPrices\x12N\n" +
+	"\x0eservice_prices\x18\x02 \x03(\v2'.listing.PricingInfo.ServicePricesEntryR\rservicePrices\x12\x1a\n" +
+	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x1aA\n" +
+	"\x13DurationPricesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\x1a@\n" +
+	"\x12ServicePricesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\xb4\x01\n" +
+	"\vServiceInfo\x12-\n" +
+	"\x12available_services\x18\x01 \x03(\tR\x11availableServices\x12/\n" +
+	"\x13additional_services\x18\x02 \x03(\tR\x12additionalServices\x12\"\n" +
+	"\frestrictions\x18\x03 \x03(\tR\frestrictions\x12!\n" +
+	"\fmeeting_type\x18\x04 \x01(\tR\vmeetingType\"\xbd\x01\n" +
 	"\fLocationInfo\x12%\n" +
 	"\x0emetro_stations\x18\x01 \x03(\tR\rmetroStations\x12\x1a\n" +
 	"\bdistrict\x18\x02 \x01(\tR\bdistrict\x12\x12\n" +
 	"\x04city\x18\x03 \x01(\tR\x04city\x12+\n" +
 	"\x11outcall_available\x18\x04 \x01(\bR\x10outcallAvailable\x12)\n" +
-	"\x10incall_available\x18\x05 \x01(\bR\x0fincallAvailable\"\xaf\x01\n" +
-	"\bPageInfo\x12!\n" +
-	"\fcurrent_page\x18\x01 \x01(\x05R\vcurrentPage\x12\x1f\n" +
-	"\vtotal_pages\x18\x02 \x01(\x05R\n" +
-	"totalPages\x12\x19\n" +
-	"\bhas_next\x18\x03 \x01(\bR\ahasNext\x12!\n" +
-	"\fhas_previous\x18\x04 \x01(\bR\vhasPrevious\x12!\n" +
-	"\flisting_urls\x18\x05 \x03(\tR\vlistingUrls\"\xf7\x02\n" +
-	"\vBatchResult\x12\x1f\n" +
-	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
-	"totalPages\x12!\n" +
-	"\fcurrent_page\x18\x02 \x01(\x05R\vcurrentPage\x12%\n" +
-	"\x0etotal_listings\x18\x03 \x01(\x05R\rtotalListings\x12-\n" +
-	"\x12successful_scrapes\x18\x04 \x01(\x05R\x11successfulScrapes\x12%\n" +
-	"\x0efailed_scrapes\x18\x05 \x01(\x05R\rfailedScrapes\x12,\n" +
-	"\blistings\x18\x06 \x03(\v2\x10.listing.ListingR\blistings\x12\x16\n" +
-	"\x06errors\x18\a \x03(\tR\x06errors\x12\x1d\n" +
-	"\n" +
-	"started_at\x18\b \x01(\tR\tstartedAt\x12!\n" +
-	"\fcompleted_at\x18\t \x01(\tR\vcompletedAt\x12\x1f\n" +
-	"\vduration_ms\x18\n" +
-	" \x01(\x03R\n" +
-	"durationMsB,Z*github.com/gregor-tokarev/hoe_parser/protob\x06proto3"
+	"\x10incall_available\x18\x05 \x01(\bR\x0fincallAvailableB4Z2github.com/gregor-tokarev/hoe_parser/proto/listingb\x06proto3"
 
 var (
 	file_proto_listing_proto_rawDescOnce sync.Once
@@ -801,8 +589,8 @@ var file_proto_listing_proto_goTypes = []any{
 	(*PricingInfo)(nil),  // 3: listing.PricingInfo
 	(*ServiceInfo)(nil),  // 4: listing.ServiceInfo
 	(*LocationInfo)(nil), // 5: listing.LocationInfo
-	(*PageInfo)(nil),     // 6: listing.PageInfo
-	(*BatchResult)(nil),  // 7: listing.BatchResult
+	nil,                  // 6: listing.PricingInfo.DurationPricesEntry
+	nil,                  // 7: listing.PricingInfo.ServicePricesEntry
 }
 var file_proto_listing_proto_depIdxs = []int32{
 	1, // 0: listing.Listing.personal_info:type_name -> listing.PersonalInfo
@@ -810,12 +598,13 @@ var file_proto_listing_proto_depIdxs = []int32{
 	3, // 2: listing.Listing.pricing_info:type_name -> listing.PricingInfo
 	4, // 3: listing.Listing.service_info:type_name -> listing.ServiceInfo
 	5, // 4: listing.Listing.location_info:type_name -> listing.LocationInfo
-	0, // 5: listing.BatchResult.listings:type_name -> listing.Listing
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	6, // 5: listing.PricingInfo.duration_prices:type_name -> listing.PricingInfo.DurationPricesEntry
+	7, // 6: listing.PricingInfo.service_prices:type_name -> listing.PricingInfo.ServicePricesEntry
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_listing_proto_init() }

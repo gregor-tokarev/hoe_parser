@@ -1,11 +1,19 @@
-.PHONY: build test clean lint fmt vet deps run docker-build docker-run docker-up docker-down docker-dev docker-status docker-logs docker-clean proto scraper help
+.PHONY: build test clean lint fmt vet deps run docker-build docker-run docker-up docker-down docker-dev docker-status docker-logs docker-clean proto scraper gold-scraper gold-callback-scraper clickhouse-example run-gold-scraper run-gold-callback-scraper run-clickhouse-example help
 
 # Variables
 BINARY_NAME=hoe_parser
 SCRAPER_BINARY=scraper_example
+GOLD_SCRAPER_BINARY=intimcity_gold_example
+GOLD_CALLBACK_BINARY=intimcity_gold_callback_example
+CLICKHOUSE_BINARY=clickhouse_example
 BUILD_DIR=build
 CMD_DIR=cmd/hoe_parser
 SCRAPER_CMD_DIR=cmd/scraper_example
+GOLD_SCRAPER_CMD_DIR=cmd/intimcity_gold_example
+GOLD_CALLBACK_CMD_DIR=cmd/intimcity_gold_callback_example
+CLICKHOUSE_CMD_DIR=cmd/clickhouse_example
+
+# Environment loading helper - loads .env file if it exists
 
 # Default target
 all: fmt vet test build
@@ -21,6 +29,24 @@ scraper:
 	@echo "Building $(SCRAPER_BINARY)..."
 	@mkdir -p $(BUILD_DIR)
 	@go build -o $(BUILD_DIR)/$(SCRAPER_BINARY) ./$(SCRAPER_CMD_DIR)
+
+## Build the intimcity gold scraper
+gold-scraper:
+	@echo "Building $(GOLD_SCRAPER_BINARY)..."
+	@mkdir -p $(BUILD_DIR)
+	@go build -o $(BUILD_DIR)/$(GOLD_SCRAPER_BINARY) ./$(GOLD_SCRAPER_CMD_DIR)
+
+## Build the intimcity gold callback scraper
+gold-callback-scraper:
+	@echo "Building $(GOLD_CALLBACK_BINARY)..."
+	@mkdir -p $(BUILD_DIR)
+	@go build -o $(BUILD_DIR)/$(GOLD_CALLBACK_BINARY) ./$(GOLD_CALLBACK_CMD_DIR)
+
+## Build the ClickHouse adapter example
+clickhouse-example:
+	@echo "Building $(CLICKHOUSE_BINARY)..."
+	@mkdir -p $(BUILD_DIR)
+	@go build -o $(BUILD_DIR)/$(CLICKHOUSE_BINARY) ./$(CLICKHOUSE_CMD_DIR)
 
 ## Generate protobuf files
 proto:
@@ -67,17 +93,32 @@ deps:
 ## Run the application
 run:
 	@echo "Running $(BINARY_NAME)..."
-	@go run ./$(CMD_DIR)
+	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(CMD_DIR)'
 
 ## Run the scraper example
 run-scraper:
 	@echo "Running $(SCRAPER_BINARY)..."
-	@go run ./$(SCRAPER_CMD_DIR)
+	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(SCRAPER_CMD_DIR)'
+
+## Run the intimcity gold scraper
+run-gold-scraper:
+	@echo "Running $(GOLD_SCRAPER_BINARY)..."
+	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(GOLD_SCRAPER_CMD_DIR)'
+
+## Run the intimcity gold callback scraper
+run-gold-callback-scraper:
+	@echo "Running $(GOLD_CALLBACK_BINARY)..."
+	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(GOLD_CALLBACK_CMD_DIR)'
+
+## Run the ClickHouse adapter example
+run-clickhouse-example:
+	@echo "Running $(CLICKHOUSE_BINARY)..."
+	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; go run ./$(CLICKHOUSE_CMD_DIR)'
 
 ## Run with hot reload (requires air)
 dev:
 	@echo "Running with hot reload..."
-	@air -c .air.toml
+	@bash -c 'if [ -f .env ]; then echo "Loading environment from .env file..."; set -a; source .env; set +a; fi; air -c .air.toml'
 
 ## Docker build
 docker-build:

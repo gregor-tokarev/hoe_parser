@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS events (
 ) ENGINE = MergeTree()
 ORDER BY (timestamp, event_type, source)
 PARTITION BY toYYYYMM(timestamp)
-TTL timestamp + INTERVAL 90 DAY;
+TTL created_at + INTERVAL 90 DAY;
 
 -- Create metrics table for monitoring
 CREATE TABLE IF NOT EXISTS metrics (
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS metrics (
 ) ENGINE = MergeTree()
 ORDER BY (timestamp, metric_name)
 PARTITION BY toYYYYMM(timestamp)
-TTL timestamp + INTERVAL 30 DAY;
+TTL created_at + INTERVAL 30 DAY;
 
 -- Create parsing_errors table for error tracking
 CREATE TABLE IF NOT EXISTS parsing_errors (
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS parsing_errors (
 ) ENGINE = MergeTree()
 ORDER BY (timestamp, error_type, source)
 PARTITION BY toYYYYMM(timestamp)
-TTL timestamp + INTERVAL 30 DAY;
+TTL created_at + INTERVAL 30 DAY;
 
 -- Create materialized view for real-time metrics
 CREATE MATERIALIZED VIEW IF NOT EXISTS events_summary_mv

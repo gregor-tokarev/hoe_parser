@@ -6,6 +6,8 @@ A high-performance parsing service built with Go.
 
 - High-performance parsing engine
 - RESTful API with OpenAPI documentation
+- **ClickHouse Integration** for analytics and data storage
+- **Continuous Web Scraping** with real-time monitoring
 - Docker containerization
 - Comprehensive test coverage
 - Multi-platform builds
@@ -17,280 +19,220 @@ A high-performance parsing service built with Go.
 ```
 hoe_parser/
 ├── cmd/                    # Main applications
-│   └── hoe_parser/        # Main application entry point
-├── internal/              # Private application code
+│   ├── hoe_parser/        # Main application entry point
+│   ├── scraper_example/   # Basic scraper example
+│   ├── intimcity_gold_example/     # Continuous gold scraper
+│   ├── clickhouse_example/        # ClickHouse integration example
+│   └── batch_to_clickhouse/       # Batch processing example
+├── internal/              # Internal packages
+│   ├── api/              # HTTP handlers and routes
+│   ├── clickhouse/       # ClickHouse adapter and operations
 │   ├── config/           # Configuration management
-│   └── parser/           # Core parsing logic
-├── pkg/                   # Public library code
-│   └── utils/            # Utility functions
-├── api/                   # API definitions
-├── configs/               # Configuration files
-├── scripts/               # Build and deployment scripts
-├── build/                 # Build artifacts (generated)
-├── docs/                  # Documentation
-├── examples/              # Example code and usage
-├── test/                  # Additional test files
-└── deployments/           # Deployment configurations
+│   ├── kafka/            # Kafka client and operations
+│   └── scraper/          # Web scraping functionality
+├── deployments/          # Deployment configurations
+│   └── clickhouse/       # ClickHouse setup and migrations
+├── docs/                 # Documentation
+│   ├── CLICKHOUSE_ADAPTER.md     # ClickHouse integration guide
+│   └── INTIMCITY_GOLD_SCRAPER.md # Scraper documentation
+├── pkg/                  # Public packages
+├── proto/                # Protocol buffer definitions
+└── scripts/              # Build and deployment scripts
 ```
 
-## 🛠️ Development
+## 🔧 Quick Start
 
 ### Prerequisites
 
-- Go 1.24.3 or higher
-- Make (optional, for using Makefile targets)
-- Docker (optional, for containerization)
+- Go 1.24.3 or later
+- Docker and Docker Compose
+- ClickHouse (via Docker)
 
-### Quick Start
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/gregor-tokarev/hoe_parser.git
-   cd hoe_parser
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   go mod download
-   ```
-
-3. **Build the application:**
-   ```bash
-   make build
-   # or
-   go build -o build/hoe_parser ./cmd/hoe_parser
-   ```
-
-4. **Run the application:**
-   ```bash
-   make run
-   # or
-   ./build/hoe_parser
-   ```
-
-### Available Make Targets
+### Installation
 
 ```bash
-# Development
-make help           # Show all available targets
-make build          # Build the application
-make scraper        # Build the scraper example
-make proto          # Generate protobuf files
-make test           # Run tests with coverage
-make fmt            # Format code
-make vet            # Vet code
-make lint           # Lint code (requires golangci-lint)
-make clean          # Clean build artifacts
-make deps           # Install dependencies
-make run            # Run the application
-make run-scraper    # Run the scraper example
-make dev            # Run with hot reload
+# Clone the repository
+git clone <repository-url>
+cd hoe_parser
 
-# Docker
-make docker-build   # Build Docker image
-make docker-run     # Run single Docker container
-make docker-up      # Start all services
-make docker-down    # Stop all services
-make docker-dev     # Start in development mode
-make docker-status  # Show services status
-make docker-logs    # Show services logs
-make docker-clean   # Clean Docker resources
+# Copy environment configuration
+cp env.example .env
+
+# Install dependencies
+make deps
+
+# Start services (ClickHouse, Kafka, etc.)
+make docker-up
+
+# Apply ClickHouse migrations (comprehensive setup)
+docker exec -it clickhouse-server clickhouse-client --queries-file /docker-entrypoint-initdb.d/fix_ttl_datetime64_issue.sql
+
+# Build the application
+make build
 ```
 
-### Configuration
+### Examples
 
-The application can be configured using:
+**Note**: All `make run-*` commands automatically load environment variables from `.env` file if it exists.
 
-1. **Environment variables:**
-   ```bash
-   export HOST=localhost
-   export PORT=8080
-   export LOG_LEVEL=info
-   export DEBUG=false
-   ```
+#### Basic Scraping
+```bash
+# Run basic scraper example
+make run-scraper
+```
 
-2. **Configuration file:**
-   Copy `configs/config.yaml` and modify as needed.
+#### Continuous Monitoring with ClickHouse
+```bash
+# Run continuous scraper with ClickHouse integration
+make run-clickhouse-example
+```
 
-## 🧪 Testing
+#### Batch Processing
+```bash
+# Run batch processing example
+go run ./cmd/batch_to_clickhouse
+```
 
-Run the test suite:
+## 📊 ClickHouse Integration
+
+The project includes a comprehensive ClickHouse adapter for analytics and data storage:
+
+- **Flattened Schema**: Optimized table structure for analytics
+- **Batch Processing**: High-performance bulk operations  
+- **Real-time Processing**: Continuous data ingestion with resilient error handling
+- **Production-Ready Reliability**: Automatic retries, timeout management, and graceful error recovery
+- **Built-in Analytics**: Statistics and reporting functions
+- **Change Tracking**: Audit logging for all modifications
+
+See [ClickHouse Adapter Documentation](docs/CLICKHOUSE_ADAPTER.md) for detailed information.
+
+## 🔄 Web Scraping
+
+Advanced web scraping capabilities with:
+
+- **Continuous Monitoring**: Loop through pages automatically
+- **Rate Limiting**: Respectful scraping with delays
+- **Encoding Support**: Handle Russian text and various encodings
+- **Error Recovery**: Robust error handling and retries
+- **Channel Integration**: Real-time data processing via Go channels
+
+See [Gold Scraper Documentation](docs/INTIMCITY_GOLD_SCRAPER.md) for detailed information.
+
+## ⚙️ Configuration
+
+The application uses environment variables for configuration. Key settings:
+
+### ClickHouse
+```bash
+CLICKHOUSE_HOST=localhost
+CLICKHOUSE_PORT=9000
+CLICKHOUSE_DATABASE=hoe_parser
+CLICKHOUSE_USER=hoe_parser_user
+CLICKHOUSE_PASSWORD=hoe_parser_password
+```
+
+### Application
+```bash
+HOST=localhost
+PORT=8080
+LOG_LEVEL=info
+DEBUG=false
+```
+
+See `env.example` for all available configuration options.
+
+## 🚀 Development
+
+### Building
 
 ```bash
+# Build all components
+make build
+
+# Build specific components
+make clickhouse-example
+make gold-scraper
+```
+
+### Testing
+
+```bash
+# Run tests
 make test
+
+# Run with coverage
+make test-coverage
 ```
 
-This will:
-- Run all unit tests with race detection
-- Generate coverage report
-- Run benchmarks
-- Perform code vetting
-- Check code formatting
+### Code Quality
+
+```bash
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Vet code
+make vet
+```
+
+## 📈 Monitoring
+
+The application includes comprehensive monitoring:
+
+- **Metrics**: Application and business metrics
+- **Health Checks**: Service availability monitoring
+- **Structured Logging**: JSON-formatted logs
+- **Performance Profiling**: Built-in profiling support
 
 ## 🐳 Docker
 
-### Build Docker image:
-```bash
-make docker-build
-```
+### Development
 
-### Run with Docker:
-```bash
-make docker-run
-```
-
-### Using Docker Compose:
-```bash
-# Start all services (production mode)
-make docker-up
-# or
-./scripts/docker-setup.sh up
-
-# Start in development mode with hot reload
-make docker-dev
-# or
-./scripts/docker-setup.sh dev
-
-# Stop all services
-make docker-down
-# or
-./scripts/docker-setup.sh down
-```
-
-## 🐳 Docker Services
-
-The project includes a complete Docker Compose setup with the following services:
-
-### Services Included:
-- **HOE Parser Application** - Main application (port 8081)
-- **Kafka** - Message broker (port 9092)
-- **Kafka UI** - Web interface for Kafka management (port 8080)
-- **ClickHouse** - Columnar database (HTTP: 8123, TCP: 9000)
-- **Redis** - Caching and session storage (port 6379)
-- **Zookeeper** - Required for Kafka (port 2181)
-
-### Quick Commands:
 ```bash
 # Start all services
-make docker-up
-
-# Start in development mode
 make docker-dev
 
-# Check status
+# Check service status
 make docker-status
 
 # View logs
 make docker-logs
-
-# Stop all services
-make docker-down
-
-# Clean up resources
-make docker-clean
-
-# Access ClickHouse client
-./scripts/docker-setup.sh clickhouse
-
-# Access Kafka shell
-./scripts/docker-setup.sh kafka
 ```
 
-### Service URLs:
-- **HOE Parser API**: http://localhost:8081
-- **Kafka UI**: http://localhost:8080  
-- **ClickHouse**: http://localhost:8123
-- **Redis**: localhost:6379
-
-## 🕷️ Web Scraping Functionality
-
-The project includes advanced web scraping capabilities using [goquery](https://github.com/PuerkitoBio/goquery) and protobuf models:
-
-### Features:
-- **Structured Data Extraction**: Extracts personal info, contact details, pricing, services, and location
-- **Protobuf Models**: Type-safe data structures generated from `.proto` definitions
-- **HTTP API**: RESTful endpoints for scraping operations
-- **Error Handling**: Robust error handling and validation
-
-### Quick Start:
-```bash
-# Run the scraper example
-make run-scraper
-
-# Start the HTTP API server
-make run
-
-# Run the interactive demo
-./scripts/demo.sh
-```
-
-### Protobuf Models:
-The scraper returns structured data using these protobuf models:
-- `Listing` - Main listing information
-- `PersonalInfo` - Age, height, weight, physical attributes
-- `ContactInfo` - Phone, telegram, messaging apps
-- `PricingInfo` - Duration-based and service-based pricing
-- `ServiceInfo` - Available services and restrictions
-- `LocationInfo` - Metro stations, districts, availability
-
-## 📚 API Documentation
-
-The API is documented using OpenAPI 3.0. You can find the specification in `api/openapi.yaml`.
-
-### Key Endpoints:
-
-- `POST /api/v1/scrape` - Scrape and parse listing data
-- `GET /api/v1/health` - Health check
-- `GET /health` - Health check
-
-### Example Usage:
+### Production
 
 ```bash
-# Health check
-curl http://localhost:8080/health
+# Build Docker image
+make docker-build
 
-# Scrape a listing
-curl -X POST http://localhost:8080/api/v1/scrape \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://a.intimcity.gold/indi/anketa675508.htm"}'
+# Run container
+make docker-run
 ```
 
-## 🏗️ Architecture
+## 📝 Available Commands
 
-### Directory Structure Explanation:
-
-- **`cmd/`**: Contains the main applications. Each subdirectory represents a different binary.
-- **`internal/`**: Private application code that shouldn't be imported by other applications.
-- **`pkg/`**: Library code that can be used by external applications.
-- **`api/`**: API definitions, protocol buffers, OpenAPI specs.
-- **`configs/`**: Configuration file templates and examples.
-- **`scripts/`**: Scripts for building, testing, and deployment.
-- **`build/`**: Generated build artifacts.
-
-### Package Organization:
-
-- **Config Package**: Handles environment and file-based configuration
-- **Parser Package**: Core business logic for parsing operations
-- **Utils Package**: Reusable utility functions
+```bash
+make help                    # Show all available commands
+make build                   # Build the main application
+make clickhouse-example      # Build ClickHouse example
+make gold-scraper           # Build continuous scraper
+make run-clickhouse-example # Run ClickHouse integration
+make run-gold-scraper       # Run continuous scraper
+make docker-up              # Start all services
+make docker-down            # Stop all services
+make test                   # Run tests
+make clean                  # Clean build artifacts
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for your changes
-5. Run the test suite (`make test`)
-6. Commit your changes (`git commit -m 'Add some amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
-### Code Standards:
-
-- Follow Go conventions and idioms
-- Write tests for new functionality
-- Ensure code is properly formatted (`make fmt`)
-- Pass all linting checks (`make lint`)
-- Maintain test coverage above 80%
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
