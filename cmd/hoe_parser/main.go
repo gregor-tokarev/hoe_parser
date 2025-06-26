@@ -92,8 +92,6 @@ func main() {
 			select {
 			case link := <-linkChan:
 				go func(link string) {
-					fmt.Printf("📥 Processing link: %s\n", link)
-
 					intimcityScraper := scraper.NewListingScraper(link)
 					// Scrape the individual listing
 					listing, err := intimcityScraper.ScrapeListing()
