@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package listing;
+
+option go_package = "github.com/gregor-tokarev/hoe_parser/proto/listing";
+
+// Main listing information
+message Listing {
+  string id = 1;
+  PersonalInfo personal_info = 2;
+  ContactInfo contact_info = 3;
+  PricingInfo pricing_info = 4;
+  ServiceInfo service_info = 5;
+  LocationInfo location_info = 6;
+  string description = 7;
+  string last_updated = 8;
+  repeated string photos = 9;
+}
+
+// Personal information
+message PersonalInfo {
+  string name = 1;
+  int32 age = 2;
+  int32 height = 3;
+  int32 weight = 4;
+  int32 breast_size = 5;
+  string hair_color = 6;
+  string eye_color = 7;
+  string body_type = 8;
+}
+
+// Contact information
+message ContactInfo {
+  string phone = 1;
+  string telegram = 2;
+  string email = 3;
+  bool whatsapp_available = 4;
+  bool viber_available = 5;
+}
+
+// Pricing information
+message PricingInfo {
+  map<string, int32> duration_prices = 1; // duration -> price
+  map<string, int32> service_prices = 2;  // service -> additional price
+  string currency = 3;
+}
+
+// Service information
+message ServiceInfo {
+  repeated string available_services = 1;
+  repeated string additional_services = 2;
+  repeated string restrictions = 3;
+  string meeting_type = 4; // apartment, hotel, etc.
+}
+
+// Location information
+message LocationInfo {
+  repeated string metro_stations = 1;
+  string district = 2;
+  string city = 3;
+  bool outcall_available = 4;
+  bool incall_available = 5;
+} 

@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  clickhouse-client:
+    image: clickhouse/clickhouse-client:23.8
+    container_name: hoe_parser_clickhouse_client
+    depends_on:
+      - clickhouse
+    networks:
+      - hoe_parser_network
+    profiles:
+      - tools
+    entrypoint: ["sleep", "infinity"]
+
+  # Kafka tools
+  kafka-tools:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: hoe_parser_kafka_tools
+    depends_on:
+      - kafka
+    networks:
+      - hoe_parser_network
+    profiles:
+      - tools
+    entrypoint: ["sleep", "infinity"]
+
+networks:
+  hoe_parser_network:
+    external: false 
