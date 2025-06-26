@@ -31,7 +31,7 @@ func (s *IntimcityScraper) ScrapeListing() (*listing.Listing, error) {
 	}
 
 	// Extract listing ID from URL
-	listingID := s.extractListingID(s.Url)
+	listingID := s.extractListingID()
 
 	// Create the listing object
 	listingObj := &listing.Listing{
@@ -66,9 +66,9 @@ func cleanString(s string) string {
 }
 
 // extractListingID extracts the listing ID from URL
-func (s *IntimcityScraper) extractListingID(url string) string {
+func (s *IntimcityScraper) extractListingID() string {
 	re := regexp.MustCompile(`anketa(\d+)\.htm`)
-	matches := re.FindStringSubmatch(url)
+	matches := re.FindStringSubmatch(s.Url)
 	if len(matches) > 1 {
 		return matches[1]
 	}
@@ -80,44 +80,31 @@ func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.P
 	info := &listing.PersonalInfo{}
 
 	// Extract name from page title
-	title := doc.Find("title").Text()
-	if title != "" {
-		// Extract name from title like "Индивидуалка Princessscr🦄🌸хочу твой 🍌"
-		parts := strings.Split(title, " ")
-		if len(parts) > 1 {
-			// Remove "Индивидуалка" and get the name part
-			name := strings.TrimSpace(parts[1])
-			// Clean emojis and extra characters but keep some basic chars
-			re := regexp.MustCompile(`[^\p{L}\p{N}\s_-]`)
-			name = re.ReplaceAllString(name, "")
-			name = strings.TrimSpace(name)
-			if len(name) > 0 && len(name) < 50 {
-				info.Name = name
-			}
-		}
+	if title := doc.Find("title").Text(); title != "" {
+		info.Name = strings.TrimSpace(title)
 	}
 
 	// Extract using specific element IDs where available
 	if age := doc.Find("#tdankage").Text(); age != "" {
-		if ageVal, err := strconv.Atoi(strings.TrimSpace(age)); err == nil && ageVal > 16 && ageVal < 80 {
+		if ageVal, err := strconv.Atoi(strings.TrimSpace(age)); err == nil {
 			info.Age = int32(ageVal)
 		}
 	}
 
 	if height := doc.Find("#tdankhei").Text(); height != "" {
-		if heightVal, err := strconv.Atoi(strings.TrimSpace(height)); err == nil && heightVal > 140 && heightVal < 220 {
+		if heightVal, err := strconv.Atoi(strings.TrimSpace(height)); err == nil {
 			info.Height = int32(heightVal)
 		}
 	}
 
 	if weight := doc.Find("#tdankwei").Text(); weight != "" {
-		if weightVal, err := strconv.Atoi(strings.TrimSpace(weight)); err == nil && weightVal > 30 && weightVal < 150 {
+		if weightVal, err := strconv.Atoi(strings.TrimSpace(weight)); err == nil {
 			info.Weight = int32(weightVal)
 		}
 	}
 
 	if breast := doc.Find("#tdankbre").Text(); breast != "" {
-		if breastVal, err := strconv.Atoi(strings.TrimSpace(breast)); err == nil && breastVal > 0 && breastVal < 10 {
+		if breastVal, err := strconv.Atoi(strings.TrimSpace(breast)); err == nil {
 			info.BreastSize = int32(breastVal)
 		}
 	}
@@ -128,40 +115,6 @@ func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.P
 
 	if haircut := doc.Find("#tdankinhc").Text(); haircut != "" {
 		info.HairColor = strings.TrimSpace(haircut)
-	}
-
-	// Fallback to table parsing if IDs not found
-	if info.Age == 0 || info.Height == 0 {
-		doc.Find("table tr").Each(func(i int, row *goquery.Selection) {
-			cells := row.Find("td")
-			if cells.Length() >= 2 {
-				label := strings.TrimSpace(cells.Eq(0).Text())
-				value := strings.TrimSpace(cells.Eq(1).Text())
-
-				switch {
-				case strings.Contains(label, "Возраст") && info.Age == 0:
-					if age, err := strconv.Atoi(value); err == nil && age > 16 && age < 80 {
-						info.Age = int32(age)
-					}
-				case strings.Contains(label, "Рост") && info.Height == 0:
-					if height, err := strconv.Atoi(value); err == nil && height > 140 && height < 220 {
-						info.Height = int32(height)
-					}
-				case strings.Contains(label, "Вес") && info.Weight == 0:
-					if weight, err := strconv.Atoi(value); err == nil && weight > 30 && weight < 150 {
-						info.Weight = int32(weight)
-					}
-				case strings.Contains(label, "Грудь") && info.BreastSize == 0:
-					if size, err := strconv.Atoi(value); err == nil && size > 0 && size < 10 {
-						info.BreastSize = int32(size)
-					}
-				case strings.Contains(label, "Размер одежды") && info.BodyType == "":
-					info.BodyType = value
-				case strings.Contains(label, "Интимная стрижка") && info.HairColor == "":
-					info.HairColor = value
-				}
-			}
-		})
 	}
 
 	return info
@@ -233,116 +186,56 @@ func (s *IntimcityScraper) extractPricingInfo(doc *goquery.Document) *listing.Pr
 	}
 
 	// Use table.table-price class for pricing table
-	pricingTable := doc.Find("table.table-price, table.table-price-inner")
-	if pricingTable.Length() == 0 {
-		// Fallback to any table containing pricing info
-		doc.Find("table").Each(func(i int, table *goquery.Selection) {
-			if strings.Contains(table.Text(), "Час") && strings.Contains(table.Text(), "Апартаменты") {
-				pricingTable = table
-				return
-			}
-		})
-	}
+	pricingTable := doc.Find("table.table-price table.table-price-inner tbody")
 
-	if pricingTable.Length() > 0 {
-		// Find header row to map columns
-		var columnMap = make(map[string]int)
+	trs := pricingTable.Find("tr")
 
-		pricingTable.Find("tr").Each(func(rowIndex int, row *goquery.Selection) {
-			cells := row.Find("td")
+	apartments := trs.Eq(2)
 
-			// Map header columns
-			if cells.Length() >= 4 {
-				cells.Each(func(colIndex int, cell *goquery.Selection) {
-					cellText := strings.ToLower(strings.TrimSpace(cell.Text()))
+	apartmentsDayHour := apartments.Find("td").Eq(1).Text()
+	apartmentsDay2Hour := apartments.Find("td").Eq(2).Text()
+	apartmentsNightHour := apartments.Find("td").Eq(3).Text()
+	apartmentsNight2Hour := apartments.Find("td").Eq(4).Text()
 
-					if strings.Contains(cellText, "час") && !strings.Contains(cellText, "2") {
-						if strings.Contains(row.Text(), "Днём") || rowIndex <= 2 {
-							columnMap["hour_day"] = colIndex
-						} else {
-							columnMap["hour_night"] = colIndex
-						}
-					} else if strings.Contains(cellText, "2 часа") || strings.Contains(cellText, "2часа") {
-						columnMap["2_hours"] = colIndex
-					} else if strings.Contains(cellText, "ночь") {
-						columnMap["night"] = colIndex
-					}
-				})
-			}
+	outcall := trs.Eq(3)
+	outcallDayHour := outcall.Find("td").Eq(1).Text()
+	outcallDay2Hour := outcall.Find("td").Eq(2).Text()
+	outcallNightHour := outcall.Find("td").Eq(3).Text()
+	outcallNight2Hour := outcall.Find("td").Eq(4).Text()
 
-			// Extract price data rows
-			if cells.Length() >= 4 {
-				firstCellText := strings.TrimSpace(cells.Eq(0).Text())
+	info.DurationPrices["apartments_day_hour"] = extractPrice(apartmentsDayHour)
+	info.DurationPrices["apartments_day_2hour"] = extractPrice(apartmentsDay2Hour)
+	info.DurationPrices["apartments_night_hour"] = extractPrice(apartmentsNightHour)
+	info.DurationPrices["apartments_night_2hour"] = extractPrice(apartmentsNight2Hour)
 
-				if strings.Contains(firstCellText, "Апартаменты") || strings.Contains(firstCellText, "Выезд") {
-					prefix := "apartments"
-					if strings.Contains(firstCellText, "Выезд") {
-						prefix = "outcall"
-					}
+	info.DurationPrices["outcall_day_hour"] = extractPrice(outcallDayHour)
+	info.DurationPrices["outcall_day_2hour"] = extractPrice(outcallDay2Hour)
+	info.DurationPrices["outcall_night_hour"] = extractPrice(outcallNightHour)
+	info.DurationPrices["outcall_night_2hour"] = extractPrice(outcallNight2Hour)
 
-					// Extract prices from each cell based on column mapping
-					cells.Each(func(colIndex int, cell *goquery.Selection) {
-						if cell.HasClass("colorred") {
-							priceText := strings.TrimSpace(cell.Text())
-							if price := extractPrice(priceText); price > 0 {
-								// Map column index to price type
-								for priceType, mappedCol := range columnMap {
-									if colIndex == mappedCol {
-										switch priceType {
-										case "hour_day":
-											info.DurationPrices["час"] = int32(price)
-											info.DurationPrices[prefix+"_hour_day"] = int32(price)
-										case "2_hours":
-											info.DurationPrices["2 часа"] = int32(price)
-											info.DurationPrices[prefix+"_2hours"] = int32(price)
-										case "hour_night":
-											info.DurationPrices[prefix+"_hour_night"] = int32(price)
-										case "night":
-											info.DurationPrices["ночь"] = int32(price)
-											info.DurationPrices[prefix+"_night"] = int32(price)
-										}
-										break
-									}
-								}
-							}
-						}
-					})
-				}
-			}
-		})
-	}
-
-	// Extract additional service prices from links
-	doc.Find("a").Each(func(i int, link *goquery.Selection) {
-		text := strings.TrimSpace(link.Text())
-		if strings.Contains(text, "+") {
-			re := regexp.MustCompile(`(.+?)\+(\d+)`)
-			if matches := re.FindStringSubmatch(text); len(matches) > 2 {
-				serviceName := strings.TrimSpace(matches[1])
-				if price, err := strconv.Atoi(matches[2]); err == nil {
-					info.ServicePrices[serviceName] = int32(price)
-				}
-			}
-		}
-	})
+	// pricingTable.Find("tr").Each(func(i int, row *goquery.Selection) {
+	// 	tds := row.Find("td")
+	// 	if tds.Length() >= 2 {
+	// 		label := strings.TrimSpace(tds.Eq(0).Text())
+	// 		value := strings.TrimSpace(tds.Eq(1).Text())
+	// 	}
+	// })
 
 	return info
 }
 
 // extractPrice helper function to parse price from text
-func extractPrice(text string) int {
-	// Remove all non-digit characters except spaces
-	re := regexp.MustCompile(`[\d\s]+`)
-	matches := re.FindAllString(text, -1)
+func extractPrice(text string) int32 {
+	numStr := strings.ReplaceAll(text, " ", "")
+	numStr = strings.ReplaceAll(text, " ", "")
+	numStr = strings.ReplaceAll(numStr, "\u2009", "")
+	numStr = strings.ReplaceAll(numStr, "₽", "")
 
-	for _, match := range matches {
-		// Remove spaces and convert to int
-		numStr := strings.ReplaceAll(match, " ", "")
-		numStr = strings.ReplaceAll(numStr, "\u2009", "") // Remove thin space
-		if price, err := strconv.Atoi(numStr); err == nil && price > 100 {
-			return price
-		}
+	if price, err := strconv.Atoi(numStr); err == nil {
+		fmt.Println(price)
+		return int32(price)
 	}
+
 	return 0
 }
 
@@ -431,27 +324,7 @@ func (s *IntimcityScraper) extractServiceInfo(doc *goquery.Document) *listing.Se
 		}
 	}
 
-	// Remove duplicates
-	info.AvailableServices = removeDuplicates(info.AvailableServices)
-	info.AdditionalServices = removeDuplicates(info.AdditionalServices)
-	info.Restrictions = removeDuplicates(info.Restrictions)
-
 	return info
-}
-
-// removeDuplicates removes duplicate strings from a slice
-func removeDuplicates(slice []string) []string {
-	keys := make(map[string]bool)
-	var result []string
-
-	for _, item := range slice {
-		if !keys[item] && item != "" {
-			keys[item] = true
-			result = append(result, item)
-		}
-	}
-
-	return result
 }
 
 // extractLocationInfo extracts location information
