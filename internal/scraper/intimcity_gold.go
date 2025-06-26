@@ -300,10 +300,6 @@ func (s *IntimcityGoldScraper) StartContinuousMonitoring(linkChan chan<- string)
 			// Add delay between pages
 			time.Sleep(1 * time.Second)
 		}
-
-		// Add longer delay between full cycles
-		fmt.Printf("Waiting before next cycle...\n")
-		time.Sleep(30 * time.Second)
 	}
 }
 
