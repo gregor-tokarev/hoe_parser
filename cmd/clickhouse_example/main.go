@@ -84,44 +84,26 @@ func main() {
 
 	// Process incoming links and save to ClickHouse
 	go func() {
-		processedCount := 0
-		successCount := 0
-		errorCount := 0
-
 		for {
 			select {
 			case link := <-linkChan:
-				go func(link string, processedCount int) {
-					fmt.Printf("📥 Processing link #%d: %s\n", processedCount, link)
+				go func(link string) {
+					fmt.Printf("📥 Processing link: %s\n", link)
 
 					// Scrape the individual listing
 					listing, err := intimcityScraper.ScrapeListing(link)
 
 					if err != nil {
-						errorCount++
-						log.Printf("❌ Failed to scrape listing %s (Errors: %d/%d): %v", link, errorCount, processedCount, err)
+						log.Printf("❌ Failed to scrape listing %s: %v", link, err)
 						return
 					}
 
 					// Insert into ClickHouse with retry logic
 					err = retryInsert(listing, link, 3)
 					if err != nil {
-						errorCount++
-						log.Printf("❌ Failed to insert listing %s into ClickHouse after retries (Errors: %d/%d): %v",
-							listing.Id, errorCount, processedCount, err)
 						return
 					}
-
-					successCount++
-					fmt.Printf("✅ Successfully inserted listing %s into ClickHouse (Success: %d/%d)\n",
-						listing.Id, successCount, processedCount)
-
-					// Print stats every 10 successful insertions
-					if successCount%10 == 0 {
-						fmt.Printf("📊 Stats: Processed=%d, Success=%d, Errors=%d, Success Rate=%.1f%%\n",
-							processedCount, successCount, errorCount, float64(successCount)/float64(processedCount)*100)
-					}
-				}(link, processedCount)
+				}(link)
 
 			case <-ctx.Done():
 				fmt.Println("🛑 Processing stopped")
