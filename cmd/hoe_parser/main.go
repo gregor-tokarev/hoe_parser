@@ -37,7 +37,7 @@ func main() {
 	}
 	defer adapter.Close()
 
-	fmt.Println("✅ Connected to ClickHouse successfully!")
+	fmt.Println("Connected to ClickHouse successfully!")
 
 	// Create scrapers
 	intimcityScraper := scraper.NewIntimcityScraper()
@@ -56,10 +56,10 @@ func main() {
 
 	// Start gold scraper monitoring in a goroutine
 	go func() {
-		fmt.Println("🔄 Starting continuous gold scraper monitoring...")
+		fmt.Println("Starting continuous gold scraper monitoring...")
 		err := goldScraper.StartContinuousMonitoring(linkChan)
 		if err != nil {
-			log.Printf("❌ Gold scraper monitoring failed: %v", err)
+			log.Printf("Gold scraper monitoring failed: %v", err)
 		}
 	}()
 
@@ -77,7 +77,7 @@ func main() {
 			}
 
 			if attempt < maxRetries {
-				log.Printf("⚠️  Attempt %d/%d failed for listing %s, retrying in %ds: %v",
+				log.Printf("Attempt %d/%d failed for listing %s, retrying in %ds: %v",
 					attempt, maxRetries, listing.Id, attempt*2, err)
 				time.Sleep(time.Duration(attempt*2) * time.Second)
 			} else {
@@ -99,7 +99,7 @@ func main() {
 					listing, err := intimcityScraper.ScrapeListing(link)
 
 					if err != nil {
-						log.Printf("❌ Failed to scrape listing %s: %v", link, err)
+						log.Printf("Failed to scrape listing %s: %v", link, err)
 						return
 					}
 
@@ -111,7 +111,7 @@ func main() {
 				}(link)
 
 			case <-ctx.Done():
-				fmt.Println("🛑 Processing stopped")
+				fmt.Println("Processing stopped")
 				return
 			}
 		}
@@ -120,10 +120,10 @@ func main() {
 	fmt.Println("🚀 ClickHouse adapter is running. Press Ctrl+C to stop...")
 	<-signalChan
 
-	fmt.Println("\n🛑 Shutdown signal received. Stopping...")
+	fmt.Println("\nShutdown signal received. Stopping...")
 	cancel()
 
 	// Give goroutines a moment to clean up
 	time.Sleep(2 * time.Second)
-	fmt.Println("✅ Shutdown complete")
+	fmt.Println("Shutdown complete")
 }
