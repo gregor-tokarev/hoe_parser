@@ -13,9 +13,14 @@ import (
 	"github.com/gregor-tokarev/hoe_parser/internal/config"
 	"github.com/gregor-tokarev/hoe_parser/internal/scraper"
 	listing "github.com/gregor-tokarev/hoe_parser/proto"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Error loading .env file: %v", err)
+	}
+
 	fmt.Println("Starting ClickHouse Adapter Example...")
 
 	// Load configuration from environment variables

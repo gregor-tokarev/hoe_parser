@@ -93,32 +93,32 @@ deps:
 ## Run the application
 run:
 	@echo "Running $(BINARY_NAME)..."
-	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(CMD_DIR); else go run ./$(CMD_DIR); fi
+	@go run ./$(CMD_DIR)
 
 ## Run the scraper example
 run-scraper:
 	@echo "Running $(SCRAPER_BINARY)..."
-	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(SCRAPER_CMD_DIR); else go run ./$(SCRAPER_CMD_DIR); fi
+	@go run ./$(SCRAPER_CMD_DIR)
 
 ## Run the intimcity gold scraper
 run-gold-scraper:
 	@echo "Running $(GOLD_SCRAPER_BINARY)..."
-	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(GOLD_SCRAPER_CMD_DIR); else go run ./$(GOLD_SCRAPER_CMD_DIR); fi
+	@go run ./$(GOLD_SCRAPER_CMD_DIR)
 
 ## Run the intimcity gold callback scraper
 run-gold-callback-scraper:
 	@echo "Running $(GOLD_CALLBACK_BINARY)..."
-	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(GOLD_CALLBACK_CMD_DIR); else go run ./$(GOLD_CALLBACK_CMD_DIR); fi
+	@go run ./$(GOLD_CALLBACK_CMD_DIR)
 
 ## Run the ClickHouse adapter example
 run-clickhouse-example:
 	@echo "Running $(CLICKHOUSE_BINARY)..."
-	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) go run ./$(CLICKHOUSE_CMD_DIR); else go run ./$(CLICKHOUSE_CMD_DIR); fi
+	@go run ./$(CLICKHOUSE_CMD_DIR)
 
 ## Run with hot reload (requires air)
 dev:
 	@echo "Running with hot reload..."
-	@if [ -f .env ]; then echo "Loading environment from .env file..."; env $$(cat .env) air -c .air.toml; else air -c .air.toml; fi
+	@air -c .air.toml
 
 ## Docker build
 docker-build:
