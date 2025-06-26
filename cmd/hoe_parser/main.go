@@ -40,7 +40,6 @@ func main() {
 	fmt.Println("Connected to ClickHouse successfully!")
 
 	// Create scrapers
-	intimcityScraper := scraper.NewIntimcityScraper()
 	goldScraper := scraper.NewIntimcityGoldScraper()
 
 	// Create channel for shutdown signals
@@ -95,8 +94,9 @@ func main() {
 				go func(link string) {
 					fmt.Printf("📥 Processing link: %s\n", link)
 
+					intimcityScraper := scraper.NewIntimcityScraper(link)
 					// Scrape the individual listing
-					listing, err := intimcityScraper.ScrapeListing(link)
+					listing, err := intimcityScraper.ScrapeListing()
 
 					if err != nil {
 						log.Printf("Failed to scrape listing %s: %v", link, err)

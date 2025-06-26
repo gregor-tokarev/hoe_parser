@@ -14,23 +14,24 @@ import (
 
 // IntimcityScraper handles scraping of intimcity listings
 type IntimcityScraper struct {
+	Url string
 }
 
 // NewIntimcityScraper creates a new intimcity scraper
-func NewIntimcityScraper() *IntimcityScraper {
-	return &IntimcityScraper{}
+func NewIntimcityScraper(url string) *IntimcityScraper {
+	return &IntimcityScraper{Url: url}
 }
 
 // ScrapeListing scrapes a single listing from intimcity and returns protobuf model
-func (s *IntimcityScraper) ScrapeListing(url string) (*listing.Listing, error) {
-	doc, err := FetchAndParsePage(url)
+func (s *IntimcityScraper) ScrapeListing() (*listing.Listing, error) {
+	doc, err := FetchAndParsePage(s.Url)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
 	// Extract listing ID from URL
-	listingID := s.extractListingID(url)
+	listingID := s.extractListingID(s.Url)
 
 	// Create the listing object
 	listingObj := &listing.Listing{
@@ -78,71 +79,89 @@ func (s *IntimcityScraper) extractListingID(url string) string {
 func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.PersonalInfo {
 	info := &listing.PersonalInfo{}
 
-	// Get the main content text
-	mainText := doc.Text()
-
-	// Extract age - try multiple patterns, prioritizing more specific ones
-	agePatterns := []string{
-		`Возраст\s*(\d+)`,      // "Возраст 32"
-		`(\d+)\s+(?:года|лет)`, // "32 года", "25 лет"
-		`возраст[:\s]*(\d+)`,   // Generic age patterns
-	}
-	for _, pattern := range agePatterns {
-		re := regexp.MustCompile(`(?i)` + pattern)
-		if matches := re.FindStringSubmatch(mainText); len(matches) > 1 {
-			if age, err := strconv.Atoi(matches[1]); err == nil && age > 16 && age < 80 {
-				info.Age = int32(age)
-				break
+	// Extract name from page title
+	title := doc.Find("title").Text()
+	if title != "" {
+		// Extract name from title like "Индивидуалка Princessscr🦄🌸хочу твой 🍌"
+		parts := strings.Split(title, " ")
+		if len(parts) > 1 {
+			// Remove "Индивидуалка" and get the name part
+			name := strings.TrimSpace(parts[1])
+			// Clean emojis and extra characters but keep some basic chars
+			re := regexp.MustCompile(`[^\p{L}\p{N}\s_-]`)
+			name = re.ReplaceAllString(name, "")
+			name = strings.TrimSpace(name)
+			if len(name) > 0 && len(name) < 50 {
+				info.Name = name
 			}
 		}
 	}
 
-	// Extract height - looking for "167 см" patterns
-	heightPatterns := []string{
-		`Рост\s*(\d+)`,    // "Рост 167"
-		`(\d+)\s*см`,      // "167 см"
-		`рост[:\s]*(\d+)`, // Generic height patterns
-	}
-	for _, pattern := range heightPatterns {
-		re := regexp.MustCompile(`(?i)` + pattern)
-		if matches := re.FindStringSubmatch(mainText); len(matches) > 1 {
-			if height, err := strconv.Atoi(matches[1]); err == nil && height > 140 && height < 220 {
-				info.Height = int32(height)
-				break
-			}
+	// Extract using specific element IDs where available
+	if age := doc.Find("#tdankage").Text(); age != "" {
+		if ageVal, err := strconv.Atoi(strings.TrimSpace(age)); err == nil && ageVal > 16 && ageVal < 80 {
+			info.Age = int32(ageVal)
 		}
 	}
 
-	// Extract weight - looking for "50 кг" patterns
-	weightPatterns := []string{
-		`Вес\s*(\d+)`,    // "Вес 50"
-		`(\d+)\s*кг`,     // "50 кг"
-		`вес[:\s]*(\d+)`, // Generic weight patterns
-	}
-	for _, pattern := range weightPatterns {
-		re := regexp.MustCompile(`(?i)` + pattern)
-		if matches := re.FindStringSubmatch(mainText); len(matches) > 1 {
-			if weight, err := strconv.Atoi(matches[1]); err == nil && weight > 30 && weight < 150 {
-				info.Weight = int32(weight)
-				break
-			}
+	if height := doc.Find("#tdankhei").Text(); height != "" {
+		if heightVal, err := strconv.Atoi(strings.TrimSpace(height)); err == nil && heightVal > 140 && heightVal < 220 {
+			info.Height = int32(heightVal)
 		}
 	}
 
-	// Extract breast size - looking for "3 размер", "размер 3" patterns
-	breastPatterns := []string{
-		`Грудь\s*(\d+)`,     // "Грудь 3"
-		`(\d+)\s*размер`,    // "3 размер"
-		`размер[:\s]*(\d+)`, // "размер 3"
-	}
-	for _, pattern := range breastPatterns {
-		re := regexp.MustCompile(`(?i)` + pattern)
-		if matches := re.FindStringSubmatch(mainText); len(matches) > 1 {
-			if size, err := strconv.Atoi(matches[1]); err == nil && size > 0 && size < 10 {
-				info.BreastSize = int32(size)
-				break
-			}
+	if weight := doc.Find("#tdankwei").Text(); weight != "" {
+		if weightVal, err := strconv.Atoi(strings.TrimSpace(weight)); err == nil && weightVal > 30 && weightVal < 150 {
+			info.Weight = int32(weightVal)
 		}
+	}
+
+	if breast := doc.Find("#tdankbre").Text(); breast != "" {
+		if breastVal, err := strconv.Atoi(strings.TrimSpace(breast)); err == nil && breastVal > 0 && breastVal < 10 {
+			info.BreastSize = int32(breastVal)
+		}
+	}
+
+	if clothSize := doc.Find("#tdankcloth").Text(); clothSize != "" {
+		info.BodyType = strings.TrimSpace(clothSize)
+	}
+
+	if haircut := doc.Find("#tdankinhc").Text(); haircut != "" {
+		info.HairColor = strings.TrimSpace(haircut)
+	}
+
+	// Fallback to table parsing if IDs not found
+	if info.Age == 0 || info.Height == 0 {
+		doc.Find("table tr").Each(func(i int, row *goquery.Selection) {
+			cells := row.Find("td")
+			if cells.Length() >= 2 {
+				label := strings.TrimSpace(cells.Eq(0).Text())
+				value := strings.TrimSpace(cells.Eq(1).Text())
+
+				switch {
+				case strings.Contains(label, "Возраст") && info.Age == 0:
+					if age, err := strconv.Atoi(value); err == nil && age > 16 && age < 80 {
+						info.Age = int32(age)
+					}
+				case strings.Contains(label, "Рост") && info.Height == 0:
+					if height, err := strconv.Atoi(value); err == nil && height > 140 && height < 220 {
+						info.Height = int32(height)
+					}
+				case strings.Contains(label, "Вес") && info.Weight == 0:
+					if weight, err := strconv.Atoi(value); err == nil && weight > 30 && weight < 150 {
+						info.Weight = int32(weight)
+					}
+				case strings.Contains(label, "Грудь") && info.BreastSize == 0:
+					if size, err := strconv.Atoi(value); err == nil && size > 0 && size < 10 {
+						info.BreastSize = int32(size)
+					}
+				case strings.Contains(label, "Размер одежды") && info.BodyType == "":
+					info.BodyType = value
+				case strings.Contains(label, "Интимная стрижка") && info.HairColor == "":
+					info.HairColor = value
+				}
+			}
+		})
 	}
 
 	return info
@@ -152,54 +171,53 @@ func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.P
 func (s *IntimcityScraper) extractContactInfo(doc *goquery.Document) *listing.ContactInfo {
 	info := &listing.ContactInfo{}
 
-	// Extract phone number - multiple approaches
-	// Method 1: Look for tel: links
-	doc.Find("a[href^='tel:']").Each(func(i int, sel *goquery.Selection) {
-		if href, exists := sel.Attr("href"); exists {
-			phone := strings.TrimPrefix(href, "tel:")
-			phone = cleanString(phone)
-			if phone != "" {
-				info.Phone = phone
-			}
+	// Extract phone using specific ID first
+	if phone := doc.Find("#tdmobphone a").First(); phone.Length() > 0 {
+		if href, exists := phone.Attr("href"); exists && strings.HasPrefix(href, "tel:") {
+			info.Phone = cleanString(strings.TrimPrefix(href, "tel:"))
+		} else {
+			info.Phone = cleanString(phone.Text())
 		}
-	})
+	}
 
-	// Method 2: Look for phone patterns in text if not found
+	// Fallback to tel: links anywhere
 	if info.Phone == "" {
-		mainText := doc.Text()
-		phonePatterns := []string{
-			`\+7\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}`,
-			`\+7\s*\d{3}\s*\d{3}\s*\d{2}\s*\d{2}`,
-			`8\s*\(\d{3}\)\s*\d{3}-\d{2}-\d{2}`,
-			`\+7\s*\(\d{3}\)\s*\d{3}\s*\d{2}\s*\d{2}`,
-		}
-		for _, pattern := range phonePatterns {
-			re := regexp.MustCompile(pattern)
-			if match := re.FindString(mainText); match != "" {
-				info.Phone = cleanString(match)
+		doc.Find("a[href^='tel:']").First().Each(func(i int, sel *goquery.Selection) {
+			if href, exists := sel.Attr("href"); exists {
+				info.Phone = cleanString(strings.TrimPrefix(href, "tel:"))
+			}
+		})
+	}
+
+	// Extract telegram from text patterns
+	pageText := doc.Text()
+	telegramPatterns := []string{
+		`@([a-zA-Z0-9_]+)`,
+		`[Tt]елеграм[мь]?\s*[@:]?\s*([a-zA-Z0-9_]+)`,
+		`[Tt]г\s*[@:]?\s*([a-zA-Z0-9_]+)`,
+	}
+
+	for _, pattern := range telegramPatterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(pageText); len(matches) > 1 {
+			username := strings.TrimSpace(matches[1])
+			if len(username) > 2 && len(username) < 50 {
+				info.Telegram = "@" + username
 				break
 			}
 		}
 	}
 
-	// Method 3: Look for phone in HTML content more broadly
-	if info.Phone == "" {
-		// Look for any sequence that looks like a phone number
-		re := regexp.MustCompile(`(?:\+7|8)\s*[\(\s]*\d{3}[\)\s]*\s*\d{3}[\s-]*\d{2}[\s-]*\d{2}`)
-		if match := re.FindString(doc.Text()); match != "" {
-			info.Phone = cleanString(match)
-		}
-	}
-
-	// Check for messaging services in text
-	mainTextLower := strings.ToLower(doc.Text())
-	if strings.Contains(mainTextLower, "telegram") || strings.Contains(mainTextLower, "тг") {
-		info.Telegram = "available"
-	}
-	if strings.Contains(mainTextLower, "whatsapp") || strings.Contains(mainTextLower, "вотсап") {
+	// Check for messaging app availability
+	if doc.Find("a[href*='whatsapp'], .sWhatsApp").Length() > 0 {
 		info.WhatsappAvailable = true
 	}
-	if strings.Contains(mainTextLower, "viber") || strings.Contains(mainTextLower, "вайбер") {
+
+	if doc.Find("a[href*='telegram'], .sTelegram").Length() > 0 && info.Telegram == "" {
+		info.Telegram = "available"
+	}
+
+	if strings.Contains(strings.ToLower(pageText), "viber") {
 		info.ViberAvailable = true
 	}
 
@@ -214,51 +232,91 @@ func (s *IntimcityScraper) extractPricingInfo(doc *goquery.Document) *listing.Pr
 		Currency:       "RUB",
 	}
 
-	// Look for pricing in table cells and structured data
-	doc.Find("td, div, span").Each(func(i int, sel *goquery.Selection) {
-		text := strings.TrimSpace(sel.Text())
+	// Use table.table-price class for pricing table
+	pricingTable := doc.Find("table.table-price, table.table-price-inner")
+	if pricingTable.Length() == 0 {
+		// Fallback to any table containing pricing info
+		doc.Find("table").Each(func(i int, table *goquery.Selection) {
+			if strings.Contains(table.Text(), "Час") && strings.Contains(table.Text(), "Апартаменты") {
+				pricingTable = table
+				return
+			}
+		})
+	}
 
-		// Look for duration pricing patterns
-		durationPatterns := map[string]string{
-			"час":    `(?:1\s*)?час[:\s]*(\d+)`,
-			"2 часа": `2\s*час[:\s]*(\d+)`,
-			"ночь":   `ночь[:\s]*(\d+)`,
-			"день":   `день[:\s]*(\d+)`,
-		}
+	if pricingTable.Length() > 0 {
+		// Find header row to map columns
+		var columnMap = make(map[string]int)
 
-		for duration, pattern := range durationPatterns {
-			re := regexp.MustCompile(`(?i)` + pattern)
-			if matches := re.FindStringSubmatch(text); len(matches) > 1 {
-				if price, err := strconv.Atoi(matches[1]); err == nil {
-					// Handle thousands
-					if price < 1000 {
-						price *= 1000
+		pricingTable.Find("tr").Each(func(rowIndex int, row *goquery.Selection) {
+			cells := row.Find("td")
+
+			// Map header columns
+			if cells.Length() >= 4 {
+				cells.Each(func(colIndex int, cell *goquery.Selection) {
+					cellText := strings.ToLower(strings.TrimSpace(cell.Text()))
+
+					if strings.Contains(cellText, "час") && !strings.Contains(cellText, "2") {
+						if strings.Contains(row.Text(), "Днём") || rowIndex <= 2 {
+							columnMap["hour_day"] = colIndex
+						} else {
+							columnMap["hour_night"] = colIndex
+						}
+					} else if strings.Contains(cellText, "2 часа") || strings.Contains(cellText, "2часа") {
+						columnMap["2_hours"] = colIndex
+					} else if strings.Contains(cellText, "ночь") {
+						columnMap["night"] = colIndex
 					}
-					info.DurationPrices[duration] = int32(price)
+				})
+			}
+
+			// Extract price data rows
+			if cells.Length() >= 4 {
+				firstCellText := strings.TrimSpace(cells.Eq(0).Text())
+
+				if strings.Contains(firstCellText, "Апартаменты") || strings.Contains(firstCellText, "Выезд") {
+					prefix := "apartments"
+					if strings.Contains(firstCellText, "Выезд") {
+						prefix = "outcall"
+					}
+
+					// Extract prices from each cell based on column mapping
+					cells.Each(func(colIndex int, cell *goquery.Selection) {
+						if cell.HasClass("colorred") {
+							priceText := strings.TrimSpace(cell.Text())
+							if price := extractPrice(priceText); price > 0 {
+								// Map column index to price type
+								for priceType, mappedCol := range columnMap {
+									if colIndex == mappedCol {
+										switch priceType {
+										case "hour_day":
+											info.DurationPrices["час"] = int32(price)
+											info.DurationPrices[prefix+"_hour_day"] = int32(price)
+										case "2_hours":
+											info.DurationPrices["2 часа"] = int32(price)
+											info.DurationPrices[prefix+"_2hours"] = int32(price)
+										case "hour_night":
+											info.DurationPrices[prefix+"_hour_night"] = int32(price)
+										case "night":
+											info.DurationPrices["ночь"] = int32(price)
+											info.DurationPrices[prefix+"_night"] = int32(price)
+										}
+										break
+									}
+								}
+							}
+						}
+					})
 				}
 			}
-		}
+		})
+	}
 
-		// Look for simple number patterns that might be prices
-		if strings.Contains(text, "000") || (len(text) > 2 && len(text) < 8) {
-			re := regexp.MustCompile(`(\d+)\s*(?:000)?`)
-			if matches := re.FindStringSubmatch(text); len(matches) > 1 {
-				if price, err := strconv.Atoi(matches[1]); err == nil {
-					if price >= 5 && price <= 100 { // Likely in thousands
-						info.DurationPrices["base"] = int32(price * 1000)
-					} else if price >= 1000 && price <= 100000 { // Already full price
-						info.DurationPrices["base"] = int32(price)
-					}
-				}
-			}
-		}
-	})
-
-	// Extract service prices from links with "+" prefix
-	doc.Find("a").Each(func(i int, sel *goquery.Selection) {
-		text := sel.Text()
+	// Extract additional service prices from links
+	doc.Find("a").Each(func(i int, link *goquery.Selection) {
+		text := strings.TrimSpace(link.Text())
 		if strings.Contains(text, "+") {
-			re := regexp.MustCompile(`([^+]+)\+(\d+)`)
+			re := regexp.MustCompile(`(.+?)\+(\d+)`)
 			if matches := re.FindStringSubmatch(text); len(matches) > 2 {
 				serviceName := strings.TrimSpace(matches[1])
 				if price, err := strconv.Atoi(matches[2]); err == nil {
@@ -271,6 +329,23 @@ func (s *IntimcityScraper) extractPricingInfo(doc *goquery.Document) *listing.Pr
 	return info
 }
 
+// extractPrice helper function to parse price from text
+func extractPrice(text string) int {
+	// Remove all non-digit characters except spaces
+	re := regexp.MustCompile(`[\d\s]+`)
+	matches := re.FindAllString(text, -1)
+
+	for _, match := range matches {
+		// Remove spaces and convert to int
+		numStr := strings.ReplaceAll(match, " ", "")
+		numStr = strings.ReplaceAll(numStr, "\u2009", "") // Remove thin space
+		if price, err := strconv.Atoi(numStr); err == nil && price > 100 {
+			return price
+		}
+	}
+	return 0
+}
+
 // extractServiceInfo extracts available services
 func (s *IntimcityScraper) extractServiceInfo(doc *goquery.Document) *listing.ServiceInfo {
 	info := &listing.ServiceInfo{
@@ -279,37 +354,87 @@ func (s *IntimcityScraper) extractServiceInfo(doc *goquery.Document) *listing.Se
 		Restrictions:       []string{},
 	}
 
-	// Extract services from links (more specific selectors)
-	doc.Find("a[href*='style'], a[href*='type']").Each(func(i int, sel *goquery.Selection) {
-		serviceText := strings.TrimSpace(sel.Text())
-		if serviceText != "" && len(serviceText) > 2 && len(serviceText) < 100 {
-			// Clean up service name
-			serviceName := strings.Split(serviceText, "+")[0]
-			serviceName = cleanString(serviceName)
-
-			if strings.Contains(serviceText, "+") {
-				info.AdditionalServices = append(info.AdditionalServices, serviceName)
-			} else {
-				info.AvailableServices = append(info.AvailableServices, serviceName)
+	// Use table.uslugi_block class for services table
+	servicesTable := doc.Find("table.uslugi_block")
+	if servicesTable.Length() == 0 {
+		// Fallback to any table containing services info
+		doc.Find("table").Each(func(i int, table *goquery.Selection) {
+			if strings.Contains(table.Text(), "Секс") || strings.Contains(table.Text(), "Массаж") {
+				servicesTable = table
+				return
 			}
-		}
-	})
+		})
+	}
 
-	// Remove duplicates and clean up
-	info.AvailableServices = removeDuplicates(info.AvailableServices)
-	info.AdditionalServices = removeDuplicates(info.AdditionalServices)
+	if servicesTable.Length() > 0 {
+		// Extract services from checkboxes
+		servicesTable.Find("input[type='checkbox']").Each(func(j int, checkbox *goquery.Selection) {
+			// Find the service link next to checkbox
+			serviceLink := checkbox.NextFiltered("a")
+			if serviceLink.Length() == 0 {
+				serviceLink = checkbox.NextAllFiltered("a").First()
+			}
 
-	// Extract meeting type
-	mainTextLower := strings.ToLower(doc.Text())
-	if strings.Contains(mainTextLower, "квартир") || strings.Contains(mainTextLower, "дома") {
+			var serviceName string
+			if serviceLink.Length() > 0 {
+				serviceName = strings.TrimSpace(serviceLink.Text())
+			} else {
+				// Extract from parent text
+				parent := checkbox.Parent()
+				serviceName = strings.TrimSpace(parent.Text())
+				serviceName = strings.TrimPrefix(serviceName, "✓")
+				serviceName = strings.TrimPrefix(serviceName, "☑")
+				serviceName = strings.TrimSpace(serviceName)
+			}
+
+			if serviceName != "" && len(serviceName) > 2 && len(serviceName) < 100 {
+				serviceName = cleanString(serviceName)
+
+				// Check if checkbox is checked
+				if _, checked := checkbox.Attr("checked"); checked {
+					info.AvailableServices = append(info.AvailableServices, serviceName)
+				} else {
+					info.Restrictions = append(info.Restrictions, serviceName)
+				}
+			}
+		})
+
+		// Extract from service links with href patterns
+		servicesTable.Find("a[href*='style'], a[href*='type']").Each(func(j int, link *goquery.Selection) {
+			serviceName := strings.TrimSpace(link.Text())
+			if serviceName != "" && len(serviceName) > 2 && len(serviceName) < 100 {
+				serviceName = cleanString(serviceName)
+
+				if strings.Contains(serviceName, "+") {
+					parts := strings.Split(serviceName, "+")
+					if len(parts) > 0 {
+						serviceName = strings.TrimSpace(parts[0])
+						info.AdditionalServices = append(info.AdditionalServices, serviceName)
+					}
+				} else {
+					info.AvailableServices = append(info.AvailableServices, serviceName)
+				}
+			}
+		})
+	}
+
+	// Determine meeting type
+	pageText := strings.ToLower(doc.Text())
+	if strings.Contains(pageText, "апартаменты") {
 		info.MeetingType = "apartment"
 	}
-	if strings.Contains(mainTextLower, "отель") || strings.Contains(mainTextLower, "гостин") {
-		info.MeetingType = "hotel"
+	if strings.Contains(pageText, "выезд") {
+		if info.MeetingType != "" {
+			info.MeetingType = "both"
+		} else {
+			info.MeetingType = "outcall"
+		}
 	}
-	if strings.Contains(mainTextLower, "выезд") {
-		info.MeetingType = "outcall"
-	}
+
+	// Remove duplicates
+	info.AvailableServices = removeDuplicates(info.AvailableServices)
+	info.AdditionalServices = removeDuplicates(info.AdditionalServices)
+	info.Restrictions = removeDuplicates(info.Restrictions)
 
 	return info
 }
@@ -336,38 +461,57 @@ func (s *IntimcityScraper) extractLocationInfo(doc *goquery.Document) *listing.L
 		City:          "Moscow", // Default for intimcity
 	}
 
-	// Extract metro stations - multiple approaches
-	// Method 1: Links with metro in href
-	doc.Find("a[href*='metro']").Each(func(i int, sel *goquery.Selection) {
-		station := strings.TrimSpace(sel.Text())
+	// Extract city using specific ID
+	if city := doc.Find("#tdankcity").Text(); city != "" {
+		info.City = strings.TrimSpace(city)
+	}
+
+	// Extract metro stations from links with metro in href
+	doc.Find("a[href*='metro']").Each(func(i int, link *goquery.Selection) {
+		station := strings.TrimSpace(link.Text())
 		if station != "" && len(station) > 2 {
 			info.MetroStations = append(info.MetroStations, station)
 		}
 	})
 
-	// Method 2: Look for metro station patterns in text
-	if len(info.MetroStations) == 0 {
-		// Common Moscow metro stations that might appear
-		metroStations := []string{
-			"Аэропорт", "Сокол", "ЦСКА", "Динамо", "Белорусская", "Маяковская",
-			"Тверская", "Пушкинская", "Чистые пруды", "Красносельская",
-			"Комсомольская", "Сокольники", "Преображенская", "Черкизовская",
+	// Extract district from links with district in href
+	doc.Find("a[href*='district']").Each(func(i int, link *goquery.Selection) {
+		district := strings.TrimSpace(link.Text())
+		if district != "" {
+			info.District = district
+			return
 		}
+	})
 
-		mainText := doc.Text()
-		for _, station := range metroStations {
-			if strings.Contains(mainText, station) {
-				info.MetroStations = append(info.MetroStations, station)
+	// Fallback to table parsing
+	if len(info.MetroStations) == 0 || info.District == "" {
+		doc.Find("table tr").Each(func(i int, row *goquery.Selection) {
+			cells := row.Find("td")
+			if cells.Length() >= 2 {
+				label := strings.TrimSpace(cells.Eq(0).Text())
+
+				if strings.Contains(label, "Метро") && len(info.MetroStations) == 0 {
+					cells.Eq(1).Find("a").Each(func(j int, link *goquery.Selection) {
+						station := strings.TrimSpace(link.Text())
+						if station != "" && len(station) > 2 {
+							info.MetroStations = append(info.MetroStations, station)
+						}
+					})
+				}
+
+				if strings.Contains(label, "Район") && info.District == "" {
+					info.District = strings.TrimSpace(cells.Eq(1).Text())
+				}
 			}
-		}
+		})
 	}
 
-	// Check for availability types
-	mainTextLower := strings.ToLower(doc.Text())
-	if strings.Contains(mainTextLower, "выезд") || strings.Contains(mainTextLower, "приезжаю") {
+	// Check availability from pricing table
+	pageText := strings.ToLower(doc.Text())
+	if strings.Contains(pageText, "выезд") {
 		info.OutcallAvailable = true
 	}
-	if strings.Contains(mainTextLower, "квартир") || strings.Contains(mainTextLower, "дома") || strings.Contains(mainTextLower, "принимаю") {
+	if strings.Contains(pageText, "апартаменты") || strings.Contains(pageText, "принимаю") {
 		info.IncallAvailable = true
 	}
 
@@ -376,27 +520,19 @@ func (s *IntimcityScraper) extractLocationInfo(doc *goquery.Document) *listing.L
 
 // extractDescription extracts the main description
 func (s *IntimcityScraper) extractDescription(doc *goquery.Document) string {
-	var descriptions []string
+	// Use p.pnletter class for description
+	if desc := doc.Find("p.pnletter").First(); desc.Length() > 0 {
+		return cleanString(desc.Text())
+	}
 
-	// Look for description in various locations with more specific selectors
-	doc.Find("td, div.content, div.description, p").Each(func(i int, sel *goquery.Selection) {
-		text := strings.TrimSpace(sel.Text())
-		// Look for longer text blocks that contain emojis or descriptive content
-		if len(text) > 30 && (strings.Contains(text, "🔥") || strings.Contains(text, "❤") ||
-			strings.Contains(text, "девочка") || strings.Contains(text, "услуг")) {
+	// Fallback to table cells with colspan="2"
+	var descriptions []string
+	doc.Find("table tr td[colspan='2']").Each(func(i int, cell *goquery.Selection) {
+		text := strings.TrimSpace(cell.Text())
+		if len(text) > 50 {
 			descriptions = append(descriptions, text)
 		}
 	})
-
-	// If no specific description found, get the largest text block
-	if len(descriptions) == 0 {
-		doc.Find("td").Each(func(i int, sel *goquery.Selection) {
-			text := strings.TrimSpace(sel.Text())
-			if len(text) > 50 {
-				descriptions = append(descriptions, text)
-			}
-		})
-	}
 
 	if len(descriptions) > 0 {
 		// Return the longest description
@@ -406,7 +542,7 @@ func (s *IntimcityScraper) extractDescription(doc *goquery.Document) string {
 				longest = desc
 			}
 		}
-		return longest
+		return cleanString(longest)
 	}
 
 	return ""
@@ -414,24 +550,22 @@ func (s *IntimcityScraper) extractDescription(doc *goquery.Document) string {
 
 // extractLastUpdated extracts the last updated date
 func (s *IntimcityScraper) extractLastUpdated(doc *goquery.Document) string {
-	var lastUpdated string
-
-	// Look for various date patterns
-	doc.Find("td, div, span").Each(func(i int, sel *goquery.Selection) {
-		text := sel.Text()
-		// Look for date patterns
-		datePatterns := []string{
-			`(\d{2}\.\d{2}\.\d{4})`,
-			`(\d{1,2}\/\d{1,2}\/\d{4})`,
-			`(\d{4}-\d{2}-\d{2})`,
+	// Look for update date in table with noprint class
+	updateText := doc.Find("tr.noprint td").Last().Text()
+	if updateText != "" {
+		re := regexp.MustCompile(`(\d{2}\.\d{2}\.\d{4})`)
+		if matches := re.FindStringSubmatch(updateText); len(matches) > 1 {
+			return matches[1]
 		}
+	}
 
-		for _, pattern := range datePatterns {
-			re := regexp.MustCompile(pattern)
-			if matches := re.FindStringSubmatch(text); len(matches) > 1 {
-				lastUpdated = matches[1]
-				return
-			}
+	// Fallback to any date pattern in table
+	var lastUpdated string
+	doc.Find("table tr td").Each(func(i int, cell *goquery.Selection) {
+		text := cell.Text()
+		re := regexp.MustCompile(`(\d{2}\.\d{2}\.\d{4})`)
+		if matches := re.FindStringSubmatch(text); len(matches) > 1 {
+			lastUpdated = matches[1]
 		}
 	})
 
@@ -442,22 +576,25 @@ func (s *IntimcityScraper) extractLastUpdated(doc *goquery.Document) string {
 func (s *IntimcityScraper) extractPhotos(doc *goquery.Document) []string {
 	var photos []string
 
-	doc.Find("img").Each(func(i int, sel *goquery.Selection) {
-		if src, exists := sel.Attr("src"); exists {
-			// Filter out system images, icons, etc.
-			if strings.Contains(src, "jpg") || strings.Contains(src, "png") ||
-				strings.Contains(src, "jpeg") || strings.Contains(src, "webp") {
-				// Skip small system icons
-				if !strings.Contains(src, "icon") && !strings.Contains(src, "logo") {
-					// Convert relative URLs to absolute
-					if strings.HasPrefix(src, "/") {
-						src = "https://a.intimcity.gold" + src
-					}
-					photos = append(photos, src)
-				}
-			}
-		}
-	})
+	imageData, err := FetchJsonImgs(s.Url)
+	if err != nil {
+		return photos
+	}
+
+	for _, img := range imageData {
+		href := "https://a.intimcity.gold" + img.BIMG
+		photos = append(photos, href)
+	}
 
 	return photos
+}
+
+// Helper function to check if slice contains string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

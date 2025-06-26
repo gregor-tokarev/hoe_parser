@@ -3,6 +3,7 @@ package scraper
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,9 +11,36 @@ import (
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gregor-tokarev/hoe_parser/internal/models"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )
+
+func FetchJsonImgs(url string) ([]models.ImageData, error) {
+	client := &http.Client{}
+
+	formData := strings.NewReader("limit=100&offset=0")
+
+	resp, err := client.Post(url, "application/x-www-form-urlencoded", formData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch page: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse JSON response into ImageData slice
+	var imageData []models.ImageData
+	if err := json.Unmarshal(body, &imageData); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	return imageData, nil
+}
 
 func FetchAndParsePage(url string) (*goquery.Document, error) {
 	client := &http.Client{}
