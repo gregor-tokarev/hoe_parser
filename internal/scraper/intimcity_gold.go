@@ -57,9 +57,6 @@ func (s *IntimcityGoldScraper) ScrapeAllListingLinks() ([]ListingLink, error) {
 		}
 
 		allLinks = append(allLinks, links...)
-
-		// Add a small delay to be respectful to the server
-		time.Sleep(1 * time.Second)
 	}
 
 	fmt.Printf("Total listing links collected: %d\n", len(allLinks))
@@ -296,9 +293,6 @@ func (s *IntimcityGoldScraper) StartContinuousMonitoring(linkChan chan<- string)
 			for _, link := range links {
 				linkChan <- link.URL
 			}
-
-			// Add delay between pages
-			time.Sleep(1 * time.Second)
 		}
 	}
 }

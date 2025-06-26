@@ -76,9 +76,6 @@ func main() {
 
 		listings = append(listings, scrapedListing)
 		sourceURLs = append(sourceURLs, link.URL)
-
-		// Small delay to be respectful
-		time.Sleep(1 * time.Second)
 	}
 
 	fmt.Printf("✅ Successfully scraped %d listings\n", len(listings))
