@@ -62,21 +62,35 @@ type FlattenedListing struct {
 	PersonalBodyType   string
 
 	// Contact information
-	ContactPhone             string
-	ContactTelegram          string
-	ContactEmail             string
-	ContactWhatsappAvailable bool
-	ContactViberAvailable    bool
+	ContactPhone    string
+	ContactTelegram string
+	ContactEmail    string
 
 	// Pricing information
-	PricingCurrency       string
+	PricingCurrency string
+
+	// Structured pricing - Apartments/Incall rates
+	PriceApartmentsDayHour    uint32
+	PriceApartmentsDay2Hour   uint32
+	PriceApartmentsNightHour  uint32
+	PriceApartmentsNight2Hour uint32
+
+	// Structured pricing - Outcall rates
+	PriceOutcallDayHour    uint32
+	PriceOutcallDay2Hour   uint32
+	PriceOutcallNightHour  uint32
+	PriceOutcallNight2Hour uint32
+
+	// Legacy/computed pricing fields for compatibility
+	PriceHour   uint32
+	Price2Hours uint32
+	PriceNight  uint32
+	PriceDay    uint32
+	PriceBase   uint32
+
+	// Additional pricing data (for any other price types)
 	PricingDurationPrices map[string]uint32
 	PricingServicePrices  map[string]uint32
-	PriceHour             uint32
-	Price2Hours           uint32
-	PriceNight            uint32
-	PriceDay              uint32
-	PriceBase             uint32
 
 	// Service information
 	ServiceAvailable    []string
@@ -181,8 +195,6 @@ func (a *Adapter) FlattenListing(listing *listing.Listing, sourceURL string) *Fl
 		flattened.ContactPhone = listing.ContactInfo.Phone
 		flattened.ContactTelegram = listing.ContactInfo.Telegram
 		flattened.ContactEmail = listing.ContactInfo.Email
-		flattened.ContactWhatsappAvailable = listing.ContactInfo.WhatsappAvailable
-		flattened.ContactViberAvailable = listing.ContactInfo.ViberAvailable
 	}
 
 	// Flatten pricing info
@@ -198,52 +210,76 @@ func (a *Adapter) FlattenListing(listing *listing.Listing, sourceURL string) *Fl
 			flattened.PricingDurationPrices[k] = uint32(v)
 		}
 
-		// Extract common price fields with new model
-		// Priority: apartments_day -> outcall_day -> legacy keys
+		// Extract structured pricing fields directly
 		if price, exists := listing.PricingInfo.DurationPrices["apartments_day_hour"]; exists {
-			flattened.PriceHour = uint32(price)
-		} else if price, exists := listing.PricingInfo.DurationPrices["outcall_day_hour"]; exists {
-			flattened.PriceHour = uint32(price)
+			flattened.PriceApartmentsDayHour = uint32(price)
+		}
+		if price, exists := listing.PricingInfo.DurationPrices["apartments_day_2hour"]; exists {
+			flattened.PriceApartmentsDay2Hour = uint32(price)
+		}
+		if price, exists := listing.PricingInfo.DurationPrices["apartments_night_hour"]; exists {
+			flattened.PriceApartmentsNightHour = uint32(price)
+		}
+		if price, exists := listing.PricingInfo.DurationPrices["apartments_night_2hour"]; exists {
+			flattened.PriceApartmentsNight2Hour = uint32(price)
+		}
+
+		if price, exists := listing.PricingInfo.DurationPrices["outcall_day_hour"]; exists {
+			flattened.PriceOutcallDayHour = uint32(price)
+		}
+		if price, exists := listing.PricingInfo.DurationPrices["outcall_day_2hour"]; exists {
+			flattened.PriceOutcallDay2Hour = uint32(price)
+		}
+		if price, exists := listing.PricingInfo.DurationPrices["outcall_night_hour"]; exists {
+			flattened.PriceOutcallNightHour = uint32(price)
+		}
+		if price, exists := listing.PricingInfo.DurationPrices["outcall_night_2hour"]; exists {
+			flattened.PriceOutcallNight2Hour = uint32(price)
+		}
+
+		// Extract legacy pricing fields with priority: apartments -> outcall -> legacy keys
+		if flattened.PriceApartmentsDayHour > 0 {
+			flattened.PriceHour = flattened.PriceApartmentsDayHour
+		} else if flattened.PriceOutcallDayHour > 0 {
+			flattened.PriceHour = flattened.PriceOutcallDayHour
 		} else if price, exists := listing.PricingInfo.DurationPrices["час"]; exists {
 			flattened.PriceHour = uint32(price)
 		} else if price, exists := listing.PricingInfo.DurationPrices["hour"]; exists {
 			flattened.PriceHour = uint32(price)
-		} else if price, exists := listing.PricingInfo.DurationPrices["base"]; exists {
-			flattened.PriceHour = uint32(price)
 		}
 
-		if price, exists := listing.PricingInfo.DurationPrices["apartments_day_2hour"]; exists {
-			flattened.Price2Hours = uint32(price)
-		} else if price, exists := listing.PricingInfo.DurationPrices["outcall_day_2hour"]; exists {
-			flattened.Price2Hours = uint32(price)
+		if flattened.PriceApartmentsDay2Hour > 0 {
+			flattened.Price2Hours = flattened.PriceApartmentsDay2Hour
+		} else if flattened.PriceOutcallDay2Hour > 0 {
+			flattened.Price2Hours = flattened.PriceOutcallDay2Hour
 		} else if price, exists := listing.PricingInfo.DurationPrices["2 часа"]; exists {
 			flattened.Price2Hours = uint32(price)
 		} else if price, exists := listing.PricingInfo.DurationPrices["2 hours"]; exists {
 			flattened.Price2Hours = uint32(price)
 		}
 
-		if price, exists := listing.PricingInfo.DurationPrices["apartments_night_hour"]; exists {
-			flattened.PriceNight = uint32(price)
-		} else if price, exists := listing.PricingInfo.DurationPrices["outcall_night_hour"]; exists {
-			flattened.PriceNight = uint32(price)
+		if flattened.PriceApartmentsNightHour > 0 {
+			flattened.PriceNight = flattened.PriceApartmentsNightHour
+		} else if flattened.PriceOutcallNightHour > 0 {
+			flattened.PriceNight = flattened.PriceOutcallNightHour
 		} else if price, exists := listing.PricingInfo.DurationPrices["ночь"]; exists {
 			flattened.PriceNight = uint32(price)
 		} else if price, exists := listing.PricingInfo.DurationPrices["night"]; exists {
 			flattened.PriceNight = uint32(price)
 		}
 
-		// For day prices, use 2-hour rates as they're more common for full day
-		if price, exists := listing.PricingInfo.DurationPrices["apartments_day_2hour"]; exists {
-			flattened.PriceDay = uint32(price)
-		} else if price, exists := listing.PricingInfo.DurationPrices["outcall_day_2hour"]; exists {
-			flattened.PriceDay = uint32(price)
+		// Day price: prefer 2-hour rates
+		if flattened.PriceApartmentsDay2Hour > 0 {
+			flattened.PriceDay = flattened.PriceApartmentsDay2Hour
+		} else if flattened.PriceOutcallDay2Hour > 0 {
+			flattened.PriceDay = flattened.PriceOutcallDay2Hour
 		} else if price, exists := listing.PricingInfo.DurationPrices["день"]; exists {
 			flattened.PriceDay = uint32(price)
 		} else if price, exists := listing.PricingInfo.DurationPrices["day"]; exists {
 			flattened.PriceDay = uint32(price)
 		}
 
-		// Base price defaults to hour price
+		// Base price
 		if price, exists := listing.PricingInfo.DurationPrices["base"]; exists {
 			flattened.PriceBase = uint32(price)
 		} else {
@@ -295,9 +331,12 @@ func (a *Adapter) InsertFlattenedListing(ctx context.Context, flattened *Flatten
 			id, created_at, updated_at, last_scraped, source_url,
 			personal_name, personal_age, personal_height, personal_weight, personal_breast_size,
 			personal_hair_color, personal_eye_color, personal_body_type,
-			contact_phone, contact_telegram, contact_email, contact_whatsapp_available, contact_viber_available,
-			pricing_currency, pricing_duration_prices, pricing_service_prices,
+			contact_phone, contact_telegram, contact_email,
+			pricing_currency,
+			price_apartments_day_hour, price_apartments_day_2hour, price_apartments_night_hour, price_apartments_night_2hour,
+			price_outcall_day_hour, price_outcall_day_2hour, price_outcall_night_hour, price_outcall_night_2hour,
 			price_hour, price_2_hours, price_night, price_day, price_base,
+			pricing_duration_prices, pricing_service_prices,
 			service_available, service_additional, service_restrictions, service_meeting_type,
 			location_metro_stations, location_district, location_city, 
 			location_outcall_available, location_incall_available,
@@ -306,9 +345,12 @@ func (a *Adapter) InsertFlattenedListing(ctx context.Context, flattened *Flatten
 			?, ?, ?, ?, ?,
 			?, ?, ?, ?, ?,
 			?, ?, ?,
-			?, ?, ?, ?, ?,
 			?, ?, ?,
+			?,
+			?, ?, ?, ?,
+			?, ?, ?, ?,
 			?, ?, ?, ?, ?,
+			?, ?,
 			?, ?, ?, ?,
 			?, ?, ?,
 			?, ?,
@@ -319,9 +361,12 @@ func (a *Adapter) InsertFlattenedListing(ctx context.Context, flattened *Flatten
 		flattened.ID, flattened.CreatedAt, flattened.UpdatedAt, flattened.LastScraped, flattened.SourceURL,
 		flattened.PersonalName, flattened.PersonalAge, flattened.PersonalHeight, flattened.PersonalWeight, flattened.PersonalBreastSize,
 		flattened.PersonalHairColor, flattened.PersonalEyeColor, flattened.PersonalBodyType,
-		flattened.ContactPhone, flattened.ContactTelegram, flattened.ContactEmail, flattened.ContactWhatsappAvailable, flattened.ContactViberAvailable,
-		flattened.PricingCurrency, flattened.PricingDurationPrices, flattened.PricingServicePrices,
+		flattened.ContactPhone, flattened.ContactTelegram, flattened.ContactEmail,
+		flattened.PricingCurrency,
+		flattened.PriceApartmentsDayHour, flattened.PriceApartmentsDay2Hour, flattened.PriceApartmentsNightHour, flattened.PriceApartmentsNight2Hour,
+		flattened.PriceOutcallDayHour, flattened.PriceOutcallDay2Hour, flattened.PriceOutcallNightHour, flattened.PriceOutcallNight2Hour,
 		flattened.PriceHour, flattened.Price2Hours, flattened.PriceNight, flattened.PriceDay, flattened.PriceBase,
+		flattened.PricingDurationPrices, flattened.PricingServicePrices,
 		flattened.ServiceAvailable, flattened.ServiceAdditional, flattened.ServiceRestrictions, flattened.ServiceMeetingType,
 		flattened.LocationMetroStations, flattened.LocationDistrict, flattened.LocationCity,
 		flattened.LocationOutcallAvailable, flattened.LocationIncallAvailable,
@@ -350,9 +395,12 @@ func (a *Adapter) BatchInsertListings(ctx context.Context, listings []*listing.L
 			id, created_at, updated_at, last_scraped, source_url,
 			personal_name, personal_age, personal_height, personal_weight, personal_breast_size,
 			personal_hair_color, personal_eye_color, personal_body_type,
-			contact_phone, contact_telegram, contact_email, contact_whatsapp_available, contact_viber_available,
-			pricing_currency, pricing_duration_prices, pricing_service_prices,
+			contact_phone, contact_telegram, contact_email,
+			pricing_currency,
+			price_apartments_day_hour, price_apartments_day_2hour, price_apartments_night_hour, price_apartments_night_2hour,
+			price_outcall_day_hour, price_outcall_day_2hour, price_outcall_night_hour, price_outcall_night_2hour,
 			price_hour, price_2_hours, price_night, price_day, price_base,
+			pricing_duration_prices, pricing_service_prices,
 			service_available, service_additional, service_restrictions, service_meeting_type,
 			location_metro_stations, location_district, location_city, 
 			location_outcall_available, location_incall_available,
@@ -371,9 +419,12 @@ func (a *Adapter) BatchInsertListings(ctx context.Context, listings []*listing.L
 			flattened.ID, flattened.CreatedAt, flattened.UpdatedAt, flattened.LastScraped, flattened.SourceURL,
 			flattened.PersonalName, flattened.PersonalAge, flattened.PersonalHeight, flattened.PersonalWeight, flattened.PersonalBreastSize,
 			flattened.PersonalHairColor, flattened.PersonalEyeColor, flattened.PersonalBodyType,
-			flattened.ContactPhone, flattened.ContactTelegram, flattened.ContactEmail, flattened.ContactWhatsappAvailable, flattened.ContactViberAvailable,
-			flattened.PricingCurrency, flattened.PricingDurationPrices, flattened.PricingServicePrices,
+			flattened.ContactPhone, flattened.ContactTelegram, flattened.ContactEmail,
+			flattened.PricingCurrency,
+			flattened.PriceApartmentsDayHour, flattened.PriceApartmentsDay2Hour, flattened.PriceApartmentsNightHour, flattened.PriceApartmentsNight2Hour,
+			flattened.PriceOutcallDayHour, flattened.PriceOutcallDay2Hour, flattened.PriceOutcallNightHour, flattened.PriceOutcallNight2Hour,
 			flattened.PriceHour, flattened.Price2Hours, flattened.PriceNight, flattened.PriceDay, flattened.PriceBase,
+			flattened.PricingDurationPrices, flattened.PricingServicePrices,
 			flattened.ServiceAvailable, flattened.ServiceAdditional, flattened.ServiceRestrictions, flattened.ServiceMeetingType,
 			flattened.LocationMetroStations, flattened.LocationDistrict, flattened.LocationCity,
 			flattened.LocationOutcallAvailable, flattened.LocationIncallAvailable,
@@ -409,9 +460,12 @@ func (a *Adapter) GetListingByID(ctx context.Context, id string) (*FlattenedList
 			id, created_at, updated_at, last_scraped, source_url,
 			personal_name, personal_age, personal_height, personal_weight, personal_breast_size,
 			personal_hair_color, personal_eye_color, personal_body_type,
-			contact_phone, contact_telegram, contact_email, contact_whatsapp_available, contact_viber_available,
-			pricing_currency, pricing_duration_prices, pricing_service_prices,
+			contact_phone, contact_telegram, contact_email,
+			pricing_currency,
+			price_apartments_day_hour, price_apartments_day_2hour, price_apartments_night_hour, price_apartments_night_2hour,
+			price_outcall_day_hour, price_outcall_day_2hour, price_outcall_night_hour, price_outcall_night_2hour,
 			price_hour, price_2_hours, price_night, price_day, price_base,
+			pricing_duration_prices, pricing_service_prices,
 			service_available, service_additional, service_restrictions, service_meeting_type,
 			location_metro_stations, location_district, location_city,
 			location_outcall_available, location_incall_available,
@@ -429,9 +483,12 @@ func (a *Adapter) GetListingByID(ctx context.Context, id string) (*FlattenedList
 		&flattened.ID, &flattened.CreatedAt, &flattened.UpdatedAt, &flattened.LastScraped, &flattened.SourceURL,
 		&flattened.PersonalName, &flattened.PersonalAge, &flattened.PersonalHeight, &flattened.PersonalWeight, &flattened.PersonalBreastSize,
 		&flattened.PersonalHairColor, &flattened.PersonalEyeColor, &flattened.PersonalBodyType,
-		&flattened.ContactPhone, &flattened.ContactTelegram, &flattened.ContactEmail, &flattened.ContactWhatsappAvailable, &flattened.ContactViberAvailable,
-		&flattened.PricingCurrency, &flattened.PricingDurationPrices, &flattened.PricingServicePrices,
+		&flattened.ContactPhone, &flattened.ContactTelegram, &flattened.ContactEmail,
+		&flattened.PricingCurrency,
+		&flattened.PriceApartmentsDayHour, &flattened.PriceApartmentsDay2Hour, &flattened.PriceApartmentsNightHour, &flattened.PriceApartmentsNight2Hour,
+		&flattened.PriceOutcallDayHour, &flattened.PriceOutcallDay2Hour, &flattened.PriceOutcallNightHour, &flattened.PriceOutcallNight2Hour,
 		&flattened.PriceHour, &flattened.Price2Hours, &flattened.PriceNight, &flattened.PriceDay, &flattened.PriceBase,
+		&flattened.PricingDurationPrices, &flattened.PricingServicePrices,
 		&flattened.ServiceAvailable, &flattened.ServiceAdditional, &flattened.ServiceRestrictions, &flattened.ServiceMeetingType,
 		&flattened.LocationMetroStations, &flattened.LocationDistrict, &flattened.LocationCity,
 		&flattened.LocationOutcallAvailable, &flattened.LocationIncallAvailable,

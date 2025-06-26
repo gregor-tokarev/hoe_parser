@@ -80,7 +80,7 @@ func (s *IntimcityScraper) extractPersonalInfo(doc *goquery.Document) *listing.P
 	info := &listing.PersonalInfo{}
 
 	// Extract name from page title
-	if title := doc.Find("title").Text(); title != "" {
+	if title := doc.Find("h1.breadcrumbs > span").Text(); title != "" {
 		info.Name = strings.TrimSpace(title)
 	}
 
@@ -143,36 +143,36 @@ func (s *IntimcityScraper) extractContactInfo(doc *goquery.Document) *listing.Co
 	}
 
 	// Extract telegram from text patterns
-	pageText := doc.Text()
-	telegramPatterns := []string{
-		`@([a-zA-Z0-9_]+)`,
-		`[Tt]елеграм[мь]?\s*[@:]?\s*([a-zA-Z0-9_]+)`,
-		`[Tt]г\s*[@:]?\s*([a-zA-Z0-9_]+)`,
-	}
+	// pageText := doc.Text()
+	// telegramPatterns := []string{
+	// 	`@([a-zA-Z0-9_]+)`,
+	// 	`[Tt]елеграм[мь]?\s*[@:]?\s*([a-zA-Z0-9_]+)`,
+	// 	`[Tt]г\s*[@:]?\s*([a-zA-Z0-9_]+)`,
+	// }
 
-	for _, pattern := range telegramPatterns {
-		re := regexp.MustCompile(pattern)
-		if matches := re.FindStringSubmatch(pageText); len(matches) > 1 {
-			username := strings.TrimSpace(matches[1])
-			if len(username) > 2 && len(username) < 50 {
-				info.Telegram = "@" + username
-				break
-			}
-		}
-	}
+	// for _, pattern := range telegramPatterns {
+	// 	re := regexp.MustCompile(pattern)
+	// 	if matches := re.FindStringSubmatch(pageText); len(matches) > 1 {
+	// 		username := strings.TrimSpace(matches[1])
+	// 		if len(username) > 2 && len(username) < 50 {
+	// 			info.Telegram = "@" + username
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	// Check for messaging app availability
-	if doc.Find("a[href*='whatsapp'], .sWhatsApp").Length() > 0 {
-		info.WhatsappAvailable = true
-	}
+	// if doc.Find("a[href*='whatsapp'], .sWhatsApp").Length() > 0 {
+	// 	info.WhatsappAvailable = true
+	// }
 
-	if doc.Find("a[href*='telegram'], .sTelegram").Length() > 0 && info.Telegram == "" {
-		info.Telegram = "available"
-	}
+	// if doc.Find("a[href*='telegram'], .sTelegram").Length() > 0 && info.Telegram == "" {
+	// 	info.Telegram = "available"
+	// }
 
-	if strings.Contains(strings.ToLower(pageText), "viber") {
-		info.ViberAvailable = true
-	}
+	// if strings.Contains(strings.ToLower(pageText), "viber") {
+	// 	info.ViberAvailable = true
+	// }
 
 	return info
 }
@@ -232,7 +232,6 @@ func extractPrice(text string) int32 {
 	numStr = strings.ReplaceAll(numStr, "₽", "")
 
 	if price, err := strconv.Atoi(numStr); err == nil {
-		fmt.Println(price)
 		return int32(price)
 	}
 
