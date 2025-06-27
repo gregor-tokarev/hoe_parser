@@ -296,14 +296,14 @@ func (s *HomePageScraper) StartContinuousMonitoring(linkChan chan<- string) erro
 				linkChan <- link.URL
 			}
 
-			time.Sleep(time.Duration(3+rand.Intn(5)) * time.Second)
+			time.Sleep(time.Duration(1+rand.Intn(3)) * time.Second)
 		}
 	}
 }
 
 // StartContinuousMonitoringWithCallback starts continuous monitoring with a callback function for each new link
 func (s *HomePageScraper) StartContinuousMonitoringWithCallback(callback func(string)) error {
-	linkChan := make(chan string, 10000) // Buffered channel
+	linkChan := make(chan string, 25) // Buffered channel
 
 	// Start a goroutine to handle incoming links
 	go func() {
