@@ -31,7 +31,7 @@ func NewProxyClient(proxies []string, timeout time.Duration) *ProxyClient {
 		currentIdx: 0,
 		timeout:    timeout,
 		maxRetries: 3,
-		fallbackOK: true, // Allow fallback to no proxy if all proxies fail
+		fallbackOK: false, // Allow fallback to no proxy if all proxies fail
 	}
 }
 
@@ -57,6 +57,20 @@ func (pc *ProxyClient) getNextProxy() string {
 	proxy := pc.proxies[pc.currentIdx]
 	pc.currentIdx = (pc.currentIdx + 1) % len(pc.proxies)
 	return proxy
+}
+
+// getNextProxyIndex returns the next proxy index in round-robin fashion and advances it
+func (pc *ProxyClient) getNextProxyIndex() int {
+	pc.mutex.Lock()
+	defer pc.mutex.Unlock()
+
+	if len(pc.proxies) == 0 {
+		return 0
+	}
+
+	idx := pc.currentIdx
+	pc.currentIdx = (pc.currentIdx + 1) % len(pc.proxies)
+	return idx
 }
 
 // createClient creates an HTTP client with the specified proxy
@@ -99,21 +113,23 @@ func (pc *ProxyClient) Post(url, contentType string, body io.Reader) (*http.Resp
 // Do performs an HTTP request with proxy round-robin and retry logic
 func (pc *ProxyClient) Do(method, url string, body io.Reader, headers map[string]string) (*http.Response, error) {
 	var lastErr error
-	triedProxies := make(map[string]bool)
 
-	// Try with proxies first
-	for len(triedProxies) < len(pc.proxies) && len(pc.proxies) > 0 {
-		proxy := pc.getNextProxy()
-		if triedProxies[proxy] {
-			continue
-		}
-		triedProxies[proxy] = true
+	// Try with proxies first - try each proxy exactly once without skipping any
+	if len(pc.proxies) > 0 {
+		// Get starting index for this request (advances round-robin for next request)
+		startIdx := pc.getNextProxyIndex()
 
-		resp, err := pc.doRequestWithProxy(method, url, body, headers, proxy)
-		if err == nil {
-			return resp, nil
+		// Try all proxies starting from the selected index
+		for i := 0; i < len(pc.proxies); i++ {
+			proxyIdx := (startIdx + i) % len(pc.proxies)
+			proxy := pc.proxies[proxyIdx]
+
+			resp, err := pc.doRequestWithProxy(method, url, body, headers, proxy)
+			if err == nil {
+				return resp, nil
+			}
+			lastErr = err
 		}
-		lastErr = err
 	}
 
 	// If all proxies failed and fallback is allowed, try without proxy
@@ -134,6 +150,7 @@ func (pc *ProxyClient) Do(method, url string, body io.Reader, headers map[string
 
 // doRequestWithProxy performs a single HTTP request with the specified proxy
 func (pc *ProxyClient) doRequestWithProxy(method, url string, body io.Reader, headers map[string]string, proxyURL string) (*http.Response, error) {
+	fmt.Println("Creating client with proxy:", proxyURL)
 	client, err := pc.createClient(proxyURL)
 	if err != nil {
 		return nil, err

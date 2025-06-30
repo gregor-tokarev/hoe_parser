@@ -138,3 +138,28 @@ func TestInvalidProxyURL(t *testing.T) {
 		t.Errorf("Expected error to mention invalid proxy URL, got: %s", err.Error())
 	}
 }
+
+func TestProxyTriedOnceOnly(t *testing.T) {
+	// Create a client with 3 proxies
+	proxies := []string{
+		"http://proxy1:8080",
+		"http://proxy2:3128",
+		"http://proxy3:1080",
+	}
+
+	client := NewProxyClient(proxies, 10*time.Second)
+
+	// Test that getNextProxyIndex advances correctly and doesn't repeat
+	indices := make([]int, 6) // Get 6 indices (2 full cycles)
+	for i := 0; i < 6; i++ {
+		indices[i] = client.getNextProxyIndex()
+	}
+
+	// Should cycle through 0,1,2,0,1,2
+	expected := []int{0, 1, 2, 0, 1, 2}
+	for i, expectedIdx := range expected {
+		if indices[i] != expectedIdx {
+			t.Errorf("Expected index %d at position %d, got %d", expectedIdx, i, indices[i])
+		}
+	}
+}
