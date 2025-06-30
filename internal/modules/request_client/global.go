@@ -15,7 +15,7 @@ var (
 // InitGlobalClient initializes the global proxy client with configuration
 func InitGlobalClient(cfg *config.Config) {
 	once.Do(func() {
-		globalClient = NewProxyClient(cfg.Proxies, 30*time.Second)
+		globalClient = NewProxyClient(cfg.Proxies, 10*time.Second)
 	})
 }
 
@@ -24,7 +24,7 @@ func InitGlobalClient(cfg *config.Config) {
 func GetGlobalClient() *ProxyClient {
 	if globalClient == nil {
 		// Fallback to no-proxy client if not initialized
-		return NewProxyClient([]string{}, 30*time.Second)
+		return NewProxyClient([]string{}, 10*time.Second)
 	}
 	return globalClient
 }

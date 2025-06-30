@@ -2,11 +2,9 @@ package scraper
 
 import (
 	"fmt"
-	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gregor-tokarev/hoe_parser/internal/service"
@@ -290,8 +288,6 @@ func (s *HomePageScraper) StartContinuousMonitoring(linkChan chan<- string) erro
 			for _, link := range links {
 				linkChan <- link.URL
 			}
-
-			time.Sleep(time.Duration(1+rand.Intn(3)) * time.Second)
 		}
 	}
 }
