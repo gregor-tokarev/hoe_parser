@@ -3,7 +3,6 @@ package scraper
 import (
 	"fmt"
 	"math/rand"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,7 +14,6 @@ import (
 
 // HomePageScraper handles scraping of intimcity.gold listings
 type HomePageScraper struct {
-	client  *http.Client
 	baseURL string
 }
 
@@ -29,9 +27,6 @@ type ListingLink struct {
 // NewHomePageScraper creates a new intimcity home page scraper
 func NewHomePageScraper() *HomePageScraper {
 	return &HomePageScraper{
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
 		baseURL: "https://a.intimcity.gold",
 	}
 }
@@ -72,7 +67,7 @@ func (s *HomePageScraper) getTotalPages() (int, error) {
 		return 0, err
 	}
 
-	// Look for pagination - search for the pattern "1 2 3 4 5 ... 145 ������"
+	// Look for pagination - search for the pattern "1 2 3 4 5 ... 145"
 	var maxPage int
 
 	// Try to find pagination links

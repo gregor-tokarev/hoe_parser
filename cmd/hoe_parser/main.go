@@ -11,6 +11,7 @@ import (
 
 	"github.com/gregor-tokarev/hoe_parser/internal/clickhouse"
 	"github.com/gregor-tokarev/hoe_parser/internal/config"
+	"github.com/gregor-tokarev/hoe_parser/internal/modules/request_client"
 	"github.com/gregor-tokarev/hoe_parser/internal/scraper"
 	listing "github.com/gregor-tokarev/hoe_parser/proto"
 	"github.com/joho/godotenv"
@@ -27,6 +28,10 @@ func main() {
 	cfg := config.Load()
 	fmt.Printf("Loaded configuration: ClickHouse Host=%s, Port=%d, Database=%s\n",
 		cfg.ClickHouse.Host, cfg.ClickHouse.Port, cfg.ClickHouse.Database)
+
+	// Initialize global proxy client
+	request_client.InitGlobalClient(cfg)
+	fmt.Printf("Initialized proxy client with %d proxies\n", len(cfg.Proxies))
 
 	// Create ClickHouse adapter using configuration
 	chConfig := clickhouse.FromMainConfig(cfg, cfg.Debug)

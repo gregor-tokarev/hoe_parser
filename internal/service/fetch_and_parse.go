@@ -12,12 +12,13 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gregor-tokarev/hoe_parser/internal/models"
+	"github.com/gregor-tokarev/hoe_parser/internal/modules/request_client"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )
 
 func FetchJsonImgs(url string) ([]models.ImageData, error) {
-	client := &http.Client{}
+	client := request_client.GetGlobalClient()
 
 	formData := strings.NewReader("limit=100&offset=0")
 
@@ -43,7 +44,7 @@ func FetchJsonImgs(url string) ([]models.ImageData, error) {
 }
 
 func FetchAndParsePage(url string) (*goquery.Document, error) {
-	client := &http.Client{}
+	client := request_client.GetGlobalClient()
 
 	// Fetch the page
 	resp, err := client.Get(url)

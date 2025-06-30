@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,6 +41,9 @@ type Config struct {
 	// Development Settings
 	HotReload       bool
 	EnableProfiling bool
+
+	// Proxy Configuration
+	Proxies []string
 }
 
 // KafkaTopics holds Kafka topic names
@@ -131,6 +135,9 @@ func Load() *Config {
 		// Development Settings
 		HotReload:       getBoolEnv("HOT_RELOAD", false),
 		EnableProfiling: getBoolEnv("ENABLE_PROFILING", false),
+
+		// Proxy Configuration
+		Proxies: getSliceEnv("PROXIES", []string{}),
 	}
 }
 
@@ -178,6 +185,23 @@ func getDurationEnv(key string, fallback time.Duration) time.Duration {
 		if parsed, err := time.ParseDuration(value); err == nil {
 			return parsed
 		}
+	}
+	return fallback
+}
+
+// getSliceEnv gets a slice environment variable with a fallback value
+// Expects comma-separated values
+func getSliceEnv(key string, fallback []string) []string {
+	if value := os.Getenv(key); value != "" {
+		parts := strings.Split(value, ",")
+		result := make([]string, 0, len(parts))
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		return result
 	}
 	return fallback
 }
