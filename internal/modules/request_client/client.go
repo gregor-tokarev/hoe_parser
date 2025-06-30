@@ -150,7 +150,6 @@ func (pc *ProxyClient) Do(method, url string, body io.Reader, headers map[string
 
 // doRequestWithProxy performs a single HTTP request with the specified proxy
 func (pc *ProxyClient) doRequestWithProxy(method, url string, body io.Reader, headers map[string]string, proxyURL string) (*http.Response, error) {
-	fmt.Println("Creating client with proxy:", proxyURL)
 	client, err := pc.createClient(proxyURL)
 	if err != nil {
 		return nil, err
@@ -197,9 +196,6 @@ func (pc *ProxyClient) doRequestWithProxy(method, url string, body io.Reader, he
 			}
 			return nil, fmt.Errorf("request failed with %s after %d attempts: %w", proxyInfo, pc.maxRetries, err)
 		}
-
-		// Wait a bit before retrying
-		time.Sleep(time.Duration(attempt+1) * time.Second)
 	}
 
 	return nil, fmt.Errorf("unexpected end of retry loop")
