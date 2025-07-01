@@ -114,6 +114,20 @@ func (pc *ProxyClient) Post(url, contentType string, body io.Reader) (*http.Resp
 func (pc *ProxyClient) Do(method, url string, body io.Reader, headers map[string]string) (*http.Response, error) {
 	var lastErr error
 
+	headers = map[string]string{
+		"User-Agent":                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+		"Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+		"Accept-Language":           "en-US,en;q=0.9,ru;q=0.8",
+		"Accept-Encoding":           "gzip, deflate, br",
+		"Connection":                "keep-alive",
+		"Upgrade-Insecure-Requests": "1",
+		"Sec-Fetch-Dest":            "document",
+		"Sec-Fetch-Mode":            "navigate",
+		"Sec-Fetch-Site":            "none",
+		"Sec-Fetch-User":            "?1",
+		"Dnt":                       "1",
+	}
+
 	// Try with proxies first - try each proxy exactly once without skipping any
 	if len(pc.proxies) > 0 {
 		// Get starting index for this request (advances round-robin for next request)
@@ -179,9 +193,6 @@ func (pc *ProxyClient) doRequestWithProxy(method, url string, body io.Reader, he
 		for key, value := range headers {
 			req.Header.Set(key, value)
 		}
-
-		// Add default headers
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
 		resp, err := client.Do(req)
 		if err == nil {

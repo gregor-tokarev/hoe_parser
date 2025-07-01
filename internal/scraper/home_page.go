@@ -25,7 +25,7 @@ type ListingLink struct {
 // NewHomePageScraper creates a new intimcity home page scraper
 func NewHomePageScraper() *HomePageScraper {
 	return &HomePageScraper{
-		baseURL: "https://a.intimcity.gold",
+		baseURL: "https://b.intimcity.gold",
 	}
 }
 
